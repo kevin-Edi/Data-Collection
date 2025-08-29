@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Assessment Collector — Subjects + Enrollment (Per‑Grade Caps)</title>
+  <title>Assessment Collector — Subjects + Enrollment</title>
   <style>
     :root { --bg:#0b1020; --card:#121830; --card-2:#0f1530; --text:#e5e7eb; --muted:#9aa4b2; --primary:#4f46e5; --primary-2:#6366f1; --accent:#22c55e; --danger:#ef4444; --warning:#f59e0b; --border:#26304d; --input:#0d1330; }
     * { box-sizing:border-box; }
@@ -36,6 +36,7 @@
     .success { color:var(--accent); font-weight:600; }
     .footer { margin-top: 16px; display:flex; justify-content:space-between; align-items:center; gap:8px; position:sticky; bottom:0; background: linear-gradient(180deg, rgba(17,23,45,.6), rgba(17,23,45,.95)); backdrop-filter: blur(6px); padding-top:10px; }
 
+    /* Combobox */
     .combo { position: relative; }
     .combo input.combo-input { padding-right: 36px; }
     .combo .chev { position:absolute; right:10px; top:50%; transform: translateY(-50%); opacity:.6; pointer-events:none; }
@@ -45,7 +46,9 @@
     .combo-item:last-child { border-bottom:none; }
     .combo-item:hover, .combo-item.active { background: rgba(99,102,241,0.15); }
 
+    /* Date picker */
     .date-wrap { position: relative; }
+    .date-wrap .icon { position:absolute; right:10px; top:50%; transform: translateY(-50%); opacity:.8; pointer-events:none; }
     .datepicker { position:absolute; left:0; right:auto; top:calc(100% + 6px); width: 292px; background: var(--card-2); border:1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.35); padding:10px; display:none; z-index:30; }
     .datepicker.open { display:block; }
     .dp-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
@@ -58,6 +61,7 @@
     .dp-today { border-color: var(--primary-2); }
     .dp-selected { background: linear-gradient(180deg, var(--primary-2), var(--primary)); color:#fff; }
 
+    /* Mobile tweaks */
     input, textarea, select { font-size:16px; }
     .btn { min-height: 44px; }
     .check { padding: 12px 14px; }
@@ -81,17 +85,25 @@
         <input type="hidden" id="submissionId" />
 
         <div class="grid grid-2">
+          <!-- UDISE combobox -->
           <div>
             <label for="udiseInput">UDISE code <span aria-hidden="true" class="mutetext">(type to search, then pick)</span></label>
             <div class="combo" id="udiseCombo">
               <input id="udiseInput" class="combo-input" type="text" placeholder="Search UDISE or school…" autocomplete="off" aria-autocomplete="list" aria-expanded="false" aria-controls="udiseList" />
-              <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="17" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
+                <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2"/>
+                <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2"/>
+                <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2"/>
+                <rect x="7" y="14" width="3" height="3" fill="currentColor"/>
+              </svg>
               <ul id="udiseList" class="combo-list" role="listbox"></ul>
             </div>
             <div id="udiseError" class="error" style="display:none"></div>
             <div id="schoolSummary" class="hint" style="display:none"></div>
           </div>
 
+          <!-- Enumerator code / name -->
           <div>
             <label for="enumCodeInput">Enumerator code</label>
             <div class="combo" id="enumCombo">
@@ -107,6 +119,7 @@
         </div>
 
         <div class="grid grid-2" style="margin-top:6px;">
+          <!-- Visit date -->
           <div>
             <label for="visitDate">Date of visit</label>
             <div class="date-wrap">
@@ -119,6 +132,7 @@
             <div class="mutetext" id="visitDateDisplay" style="margin-top:6px;">&nbsp;</div>
           </div>
 
+          <!-- Enrollment as per register (school total) -->
           <div>
             <label for="enrollmentRegister">Total enrollment as per register (school)</label>
             <input id="enrollmentRegister" type="number" min="0" step="1" placeholder="0" />
@@ -127,6 +141,7 @@
           </div>
         </div>
 
+        <!-- Grades multi-select -->
         <div class="grid" style="margin-top:6px;">
           <div>
             <label>Grades (multi-select)</label>
@@ -152,15 +167,17 @@
 
 <script>
 (() => {
-  const BASE = 'https://script.google.com/macros/s/AKfycbyHFOOWg20nHiec3S7bW2oDO7kf09dGIxL82ZG0alWMZg2Ovd2NXRhE8WP5gfAq7tsa/exec';
+  // ======= CONFIG =======
+  const BASE = 'https://script.google.com/macros/s/REPLACE_WITH_DEPLOYMENT_ID/exec'; // <-- replace with your /exec URL
   const CONFIG = {
-    RUN_ID: '',
+    RUN_ID: '',                              // pass ?runId=... in the URL
     MODE: 'FETCH',
     DATA_ENDPOINT: `${BASE}?action=bootstrap&runId=REPLACE_RUN_ID`,
     APPS_SCRIPT_URL: `${BASE}?action=submit`,
     POLICY: { blockIfPresentExceedsRequired:true, blockIfPresentExceedsEnrolled:true, preventFutureDates:true, checkAgainstRegister:true }
   }
 
+  // ======= Helpers =======
   const $ = s => document.querySelector(s);
   const getQuery = () => Object.fromEntries(new URLSearchParams(location.search).entries());
   const pad = n => String(n).padStart(2,'0');
@@ -168,6 +185,7 @@
   const toISODate = () => document.getElementById('visitDateISO').value || '';
   const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)+Date.now());
 
+  // ======= Combobox =======
   function makeCombo(rootEl, opts){
     const input = rootEl.querySelector('.combo-input');
     const list = rootEl.querySelector('.combo-list');
@@ -199,6 +217,7 @@
     return { setItems, getSelected, input };
   }
 
+  // ======= Datepicker =======
   function buildDatePicker(){
     const input = document.getElementById('visitDate');
     const hiddenISO = document.getElementById('visitDateISO');
@@ -229,6 +248,7 @@
     document.addEventListener('click', e=>{ if (!picker.contains(e.target) && e.target !== input) close(); });
   }
 
+  // ======= State =======
   let RUN=null, SCHOOLS=[], EVALUATORS=[]; let udiseCombo, enumCombo;
 
   async function bootstrap(){
@@ -243,9 +263,11 @@
     document.getElementById('runId').value = RUN.runId || runIdFromUrl;
     document.getElementById('run-meta').textContent = `${RUN.project} · ${RUN.year} · ${RUN.round}`;
 
+    // Grades UI
     const wrap = document.getElementById('gradesWrap'); wrap.innerHTML='';
     (RUN.gradesConfigured||[]).forEach(gr=>{ const id=`grade_${safeKey(gr)}`; const lbl=document.createElement('label'); lbl.className='check'; lbl.htmlFor=id; lbl.innerHTML = `<input type="checkbox" id="${id}" value="${gr}" /> <span>${gr}</span>`; wrap.appendChild(lbl); });
 
+    // UDISE combo
     udiseCombo = makeCombo(document.getElementById('udiseCombo'), {
       items:SCHOOLS,
       label:s=>`${s.udise} — ${s.schoolName} (${s.block}, ${s.district}, ${s.state})`,
@@ -255,6 +277,7 @@
       onSelect:s=>{ const sum=`School: <b>${s.schoolName}</b> · ${s.block}, ${s.district}, ${s.state} · Admin Enrolled <b>${s.enrolled}</b> · Required <b>${s.required}</b>`; document.getElementById('schoolSummary').style.display='block'; document.getElementById('schoolSummary').innerHTML=sum; document.getElementById('udiseError').style.display='none'; updateSubmitState(); }
     });
 
+    // Enumerator combo
     enumCombo = makeCombo(document.getElementById('enumCombo'), {
       items:EVALUATORS,
       label:e=>`${e.code} — ${e.name}`,
@@ -320,25 +343,18 @@
     const err = document.getElementById(`err_${gid}`);
     const s = currentSchool();
     const regEnroll = parseInt(document.getElementById('enrollmentRegister').value,10);
-    const perEn = s && s.gEnrolled ? s.gEnrolled[grade] : undefined;  // per-grade cap if available
-    const perRq = s && s.gRequired ? s.gRequired[grade] : undefined;
     const isNonNegInt=n=>Number.isInteger(n)&&n>=0;
     let msgs=[];
     if(!isNonNegInt(present)) msgs.push('Present must be a non‑negative integer.');
+    // per-subject ≤ present
     (RUN.subjectsConfigured||[]).forEach(sub=>{
       const sk=safeKey(sub); const n=parseInt(document.getElementById(`sub_${sk}_${gid}`).value,10);
       if(!isNonNegInt(n)) msgs.push(`${sub} must be a non‑negative integer.`);
       if(isNonNegInt(n) && isNonNegInt(present) && n>present) msgs.push(`${sub} cannot exceed Present.`);
     });
     if(s){
-      if(CONFIG.POLICY.blockIfPresentExceedsRequired && isNonNegInt(present)){
-        const cap = Number.isFinite(perRq) ? perRq : s.required;
-        if (Number.isFinite(cap) && present>cap) msgs.push(`Present (${present}) exceeds Required for ${grade} (${cap}).`);
-      }
-      if(CONFIG.POLICY.blockIfPresentExceedsEnrolled && isNonNegInt(present)){
-        const cap = Number.isFinite(perEn) ? perEn : s.enrolled;
-        if (Number.isFinite(cap) && present>cap) msgs.push(`Present (${present}) exceeds Enrolled for ${grade} (${cap}).`);
-      }
+      if(CONFIG.POLICY.blockIfPresentExceedsRequired && isNonNegInt(present) && s.required>=0 && present>s.required) msgs.push(`Present (${present}) exceeds Required (${s.required}) for this school.`);
+      if(CONFIG.POLICY.blockIfPresentExceedsEnrolled && isNonNegInt(present) && s.enrolled>=0 && present>s.enrolled) msgs.push(`Present (${present}) exceeds Admin Enrolled (${s.enrolled}).`);
     }
     if(CONFIG.POLICY.checkAgainstRegister && isNonNegInt(present) && Number.isInteger(regEnroll) && regEnroll>=0 && present>regEnroll){ msgs.push(`Present (${present}) exceeds Register Enrollment (${regEnroll}).`); }
     if(msgs.length){ err.style.display='block'; err.innerHTML=msgs.join('<br>'); } else { err.style.display='none'; err.textContent=''; }
@@ -366,6 +382,7 @@
     document.getElementById('submitBtn').disabled = !ok;
   }
 
+  // ======= Events =======
   function bindEvents(){
     document.getElementById('gradesWrap').addEventListener('change', renderGradeSections);
     document.getElementById('gradeSections').addEventListener('input', (e)=>{ if (e.target.matches('input[type="number"]')) updateSubmitState(); });
@@ -403,7 +420,7 @@
           block: school.block,
           enrolled: school.enrolled,
           required: school.required,
-          enrollmentAsPerRegister: regEnroll,
+          enrollmentAsPerRegister: regEnroll, // NEW FIELD (requires column in Submissions sheet)
           enumeratorCode: enumerator.code,
           enumeratorName: enumerator.name,
           visitDateISO: visitISO,
@@ -416,7 +433,7 @@
           comments: (document.getElementById(`comments_${gid}`).value||'').trim(),
           clientUserAgent: navigator.userAgent||'',
           clientIpHash: 'na',
-          integrityVersion: '1.3.0',
+          integrityVersion: '1.2.0',
           integrityHash: 'na'
         });
       });
@@ -434,16 +451,12 @@
 
   function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.style.display='inline-flex'; setTimeout(()=> t.style.display='none', 2200); }
 
-  buildDatePicker(); // attach now
-  bootstrap()
-  .then(()=>{ bindEvents(); })
-  .catch(err=>{ console.error(err);
-    document.getElementById('formStatus').textContent =
-      'Failed to initialize form. Check bootstrap data.';
-  });
-
+  // ======= Init =======
+  function buildUI(){ bindEvents(); buildDatePicker(); }
+  bootstrap().then(()=>{ buildUI(); }).catch(err=>{ console.error(err); document.getElementById('formStatus').textContent='Failed to initialize form. Check bootstrap data.'; });
 })();
 </script>
 </body>
 </html>
+
 
