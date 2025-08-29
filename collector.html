@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Assessment Collector — Subjects</title>
+  <style>
+    :root { --bg:#0b1020; --card:#121830; --card-2:#0f1530; --text:#e5e7eb; --muted:#9aa4b2; --primary:#4f46e5; --primary-2:#6366f1; --accent:#22c55e; --danger:#ef4444; --warning:#f59e0b; --border:#26304d; --input:#0d1330; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:linear-gradient(180deg,var(--bg),#12152b); color:var(--text); font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto; }
+    a { color:var(--primary-2); }
+    .container { max-width:980px; margin:24px auto 64px; padding:0 16px; }
+    .header { display:flex; align-items:center; justify-content:space-between; gap:16px; margin:12px 0 24px; }
+    .brand { display:flex; align-items:center; gap:12px; }
+    .dot { width:12px; height:12px; border-radius:50%; background:linear-gradient(135deg,var(--primary),var(--accent)); box-shadow:0 0 0 4px #1b2140 inset; }
+    .title { font-size:20px; font-weight:650; }
+    .card { background: radial-gradient(1200px 600px at 0 -200px, rgba(79,70,229,0.2), transparent 40%), var(--card); border:1px solid var(--border); border-radius:16px; padding:18px; box-shadow:0 6px 24px rgba(0,0,0,.22); }
+    .grid { display:grid; gap:14px; grid-template-columns:1fr; }
+    @media (min-width:860px){ .grid-2 { grid-template-columns: 1fr 1fr; } }
+    label { display:block; font-size:12.5px; color:var(--muted); margin-bottom:6px; }
+    input[type=text], input[type=number], textarea { width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--input); color:var(--text); outline:none; }
+    input:focus, textarea:focus { border-color:var(--primary-2); box-shadow:0 0 0 3px rgba(99,102,241,.18); }
+    .mutetext { color:var(--muted); font-size:12px; }
+    .hint { color:var(--muted); font-size:12.5px; margin-top:6px; }
+    .row { display:flex; gap:10px; align-items:center; }
+    .btn { display:inline-flex; align-items:center; gap:8px; padding:12px 16px; border-radius:12px; border:1px solid var(--border); background:linear-gradient(180deg, var(--primary-2), var(--primary)); color:#fff; font-weight:600; cursor:pointer; box-shadow: 0 10px 24px rgba(79,70,229,.25); }
+    .btn[disabled]{ opacity:.5; cursor:not-allowed; }
+    .btn-outline { background:transparent; color:var(--text); border-color:var(--border); }
+    .pill { padding:6px 10px; border-radius:999px; background:#0e1636; border:1px solid var(--border); color:var(--muted); font-size:12px; }
+    .divider { height:1px; background: linear-gradient(90deg, transparent, #273255, transparent); margin: 16px 0; }
+    .checkboxes { display:flex; flex-wrap:wrap; gap:8px; }
+    .check { display:inline-flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--border); border-radius:10px; background:#0e1532; cursor:pointer; user-select:none; }
+    .check input { width:16px; height:16px; }
+    .grade-card { background:#0f1734; border:1px solid var(--border); padding:14px; border-radius:12px; }
+    .error { color:var(--danger); font-size:12.5px; margin-top:6px; }
+    .success { color:var(--accent); font-weight:600; }
+    .footer { margin-top: 16px; display:flex; justify-content:space-between; align-items:center; gap:8px; position:sticky; bottom:0; background: linear-gradient(180deg, rgba(17,23,45,.6), rgba(17,23,45,.95)); backdrop-filter: blur(6px); padding-top:10px; }
+
+    /* Combobox */
+    .combo { position: relative; }
+    .combo input.combo-input { padding-right: 36px; }
+    .combo .chev { position:absolute; right:10px; top:50%; transform: translateY(-50%); opacity:.6; pointer-events:none; }
+    .combo-list { position:absolute; z-index: 20; left:0; right:0; margin-top:6px; background: var(--card-2); border:1px solid var(--border); border-radius: 12px; max-height: 260px; overflow:auto; display:none; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+    .combo.open .combo-list { display:block; }
+    .combo-item { padding:10px 12px; cursor:pointer; border-bottom:1px solid rgba(255,255,255,.03); }
+    .combo-item:last-child { border-bottom:none; }
+    .combo-item:hover, .combo-item.active { background: rgba(99,102,241,0.15); }
+
+    /* Date picker */
+    .date-wrap { position: relative; }
+    .datepicker { position:absolute; left:0; right:auto; top:calc(100% + 6px); width: 292px; background: var(--card-2); border:1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.35); padding:10px; display:none; z-index:30; }
+    .datepicker.open { display:block; }
+    .dp-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+    .dp-header button { background:#0e1532; color:var(--text); border:1px solid var(--border); border-radius:8px; padding:6px 10px; cursor:pointer; }
+    .dp-grid { display:grid; grid-template-columns: repeat(7, 1fr); gap:6px; }
+    .dp-cell { text-align:center; padding:8px 0; border-radius:8px; border:1px solid transparent; cursor:pointer; user-select:none; }
+    .dp-cell:hover { background: rgba(99,102,241,0.18); }
+    .dp-cell.disabled { opacity:.4; cursor:not-allowed; }
+    .dp-dow { color: var(--muted); font-size:12px; text-align:center; padding:4px 0 8px; }
+    .dp-today { border-color: var(--primary-2); }
+    .dp-selected { background: linear-gradient(180deg, var(--primary-2), var(--primary)); color:#fff; }
+
+    /* Mobile tweaks */
+    input, textarea, select { font-size:16px; }
+    .btn { min-height: 44px; }
+    .check { padding: 12px 14px; }
+    @media (pointer: coarse) { .combo-list { max-height: 70vh; } .combo-item { padding: 14px 14px; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="brand"><div class="dot"></div><div class="title">Assessment Collector — Subjects</div></div>
+      <div id="run-pill" class="pill">Run: <span id="run-meta">loading…</span></div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin:0 0 8px; font-size: 18px;">Visit details</h2>
+      <p class="mutetext" style="margin-top:0">Select school, enumerator, date, grades and enter counts for each subject.</p>
+      <div class="divider"></div>
+
+      <form id="collectorForm" novalidate>
+        <input type="hidden" id="runId" />
+        <input type="hidden" id="submissionId" />
+
+        <div class="grid grid-2">
+          <!-- UDISE combobox -->
+          <div>
+            <label for="udiseInput">UDISE code <span aria-hidden="true" class="mutetext">(type to search, then pick)</span></label>
+            <div class="combo" id="udiseCombo">
+              <input id="udiseInput" class="combo-input" type="text" placeholder="Search UDISE or school…" autocomplete="off" aria-autocomplete="list" aria-expanded="false" aria-controls="udiseList" />
+              <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <ul id="udiseList" class="combo-list" role="listbox"></ul>
+            </div>
+            <div id="udiseError" class="error" style="display:none"></div>
+            <div id="schoolSummary" class="hint" style="display:none"></div>
+          </div>
+
+          <!-- Enumerator code / name -->
+          <div>
+            <label for="enumCodeInput">Enumerator code</label>
+            <div class="combo" id="enumCombo">
+              <input id="enumCodeInput" class="combo-input" type="text" placeholder="Type to search (if list exists) or enter code" autocomplete="off" aria-autocomplete="list" aria-expanded="false" aria-controls="enumList" />
+              <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <ul id="enumList" class="combo-list" role="listbox"></ul>
+            </div>
+            <div class="hint">If your admin uploaded an evaluator list, choose from suggestions. Otherwise type your code.</div>
+            <div style="height:10px"></div>
+            <label for="enumNameInput">Enumerator name</label>
+            <input id="enumNameInput" type="text" placeholder="Auto-fills when code is chosen from list" />
+          </div>
+        </div>
+
+        <div class="grid grid-2" style="margin-top:6px;">
+          <!-- Visit date -->
+          <div>
+            <label for="visitDate">Date of visit</label>
+            <div class="date-wrap">
+              <input id="visitDate" type="text" inputmode="none" placeholder="dd/MM/yyyy" readonly />
+              <input id="visitDateISO" type="hidden" />
+              <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="right:10px;top:50%;position:absolute;transform:translateY(-50%);opacity:.7;pointer-events:none;"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <div id="datePicker" class="datepicker" aria-hidden="true"></div>
+            </div>
+            <div class="hint">Format: dd/MM/yyyy. Tap to pick from calendar.</div>
+            <div class="mutetext" id="visitDateDisplay" style="margin-top:6px;">&nbsp;</div>
+          </div>
+
+          <!-- Grades multi-select -->
+          <div>
+            <label>Grades (multi-select)</label>
+            <div id="gradesWrap" class="checkboxes" role="group" aria-label="Grades to record"></div>
+            <div id="gradesError" class="error" style="display:none"></div>
+          </div>
+        </div>
+
+        <div id="gradeSections" class="grid" style="margin-top:6px;"></div>
+
+        <div class="footer">
+          <div id="formStatus" class="mutetext">Waiting for input…</div>
+          <div class="row">
+            <button type="button" id="resetBtn" class="btn btn-outline">Reset</button>
+            <button type="submit" id="submitBtn" class="btn" disabled>Submit</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div id="toast" class="pill" style="position:fixed; right:16px; bottom:16px; display:none; z-index: 100; background:#071031;">Saved</div>
+  </div>
+
+<script>
+(() => {
+  // ======= CONFIG =======
+  const CONFIG = {
+    RUN_ID: 'REPLACE_RUN_ID',
+    MODE: 'FETCH', // 'BOOTSTRAP' | 'FETCH'
+    DATA_ENDPOINT: 'https://script.google.com/macros/s/REPLACE_WITH_DEPLOYMENT_ID/exec?action=bootstrap&runId=REPLACE_RUN_ID',
+    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/REPLACE_WITH_DEPLOYMENT_ID/exec?action=submit',
+    POLICY: { blockIfPresentExceedsRequired:true, blockIfPresentExceedsEnrolled:true, preventFutureDates:true }
+  }
+  window.__BOOTSTRAP__ = window.__BOOTSTRAP__ || { run:{ runId: CONFIG.RUN_ID, project:'Sample', year:2025, round:'R1', gradesConfigured:['Grade 3'], subjectsConfigured:['Maths','Language'] }, schools:[], evaluators:[] };
+
+  // ======= Helpers =======
+  const $ = s => document.querySelector(s);
+  const getQuery = () => Object.fromEntries(new URLSearchParams(location.search).entries());
+  const pad = n => String(n).padStart(2,'0');
+  const toDmy = d => `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`;
+  const toISODate = () => document.getElementById('visitDateISO').value || '';
+  const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)+Date.now());
+
+  // ======= Combobox =======
+  function makeCombo(rootEl, opts){
+    const input = rootEl.querySelector('.combo-input');
+    const list = rootEl.querySelector('.combo-list');
+    let open = false, items = opts.items || [], activeIndex = -1, selected = null;
+    const template = item => opts.render ? opts.render(item) : `<div class=\"combo-item\">${opts.label(item)}</div>`;
+    const labelOf = item => opts.label ? opts.label(item) : (item.label || '');
+    const keyOf = item => opts.key ? opts.key(item) : (item.value ?? item.label);
+    function setOpen(v){ open=v; rootEl.classList.toggle('open', open); input.setAttribute('aria-expanded', String(open)); }
+    function clearList(){ list.innerHTML=''; activeIndex=-1; }
+    function renderList(filtered){ clearList(); filtered.slice(0,200).forEach((item, idx)=>{ const li=document.createElement('li'); li.className='combo-item'; li.role='option'; li.dataset.key=keyOf(item); li.innerHTML=template(item); li.addEventListener('click',()=>choose(item)); list.appendChild(li); }); setOpen(filtered.length>0); }
+    function filter(q){ const s=q.trim().toLowerCase(); if (!s) return items; return items.filter(it => (labelOf(it).toLowerCase().includes(s)) || (opts.searchFields||[]).some(f => String(it[f]||'').toLowerCase().includes(s))); }
+    function choose(item){ selected=item; input.value=labelOf(item); setOpen(false); input.dispatchEvent(new Event('change')); opts.onSelect && opts.onSelect(item); }
+    function setItems(arr){ items=arr||[]; }
+    function getSelected(){ return selected; }
+    function clearSelection(){ selected=null; }
+    input.addEventListener('input', ()=>renderList(filter(input.value)));
+    input.addEventListener('focus', ()=>renderList(filter(input.value)));
+    input.addEventListener('click', ()=>renderList(filter(input.value)));
+    document.addEventListener('click', (e)=>{ if (!rootEl.contains(e.target)) setOpen(false); });
+    input.addEventListener('keydown', (e)=>{
+      const options = Array.from(list.querySelectorAll('.combo-item'));
+      if (!open && ['ArrowDown','ArrowUp'].includes(e.key)) { setOpen(true); return; }
+      if (!open) return;
+      if (e.key==='ArrowDown'){ e.preventDefault(); activeIndex=Math.min(options.length-1, activeIndex+1); updateActive(); }
+      if (e.key==='ArrowUp'){ e.preventDefault(); activeIndex=Math.max(0, activeIndex-1); updateActive(); }
+      if (e.key==='Enter'){ e.preventDefault(); if (options[activeIndex]) options[activeIndex].click(); }
+      if (e.key==='Escape'){ setOpen(false); }
+    });
+    function updateActive(){ const options=Array.from(list.querySelectorAll('.combo-item')); options.forEach((el,i)=> el.classList.toggle('active', i===activeIndex)); const el=options[activeIndex]; if (el) el.scrollIntoView({block:'nearest'}); }
+    return { setItems, getSelected, clearSelection, input };
+  }
+
+  // ======= Datepicker =======
+  function buildDatePicker(){
+    const input = document.getElementById('visitDate');
+    const hiddenISO = document.getElementById('visitDateISO');
+    const picker = document.getElementById('datePicker');
+    let view = new Date();
+    const today = new Date();
+    function render(){
+      const monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
+      const dow=['Su','Mo','Tu','We','Th','Fr','Sa'];
+      const year=view.getFullYear(); const month=view.getMonth();
+      const first=new Date(year,month,1); const startDow=first.getDay(); const daysInMonth=new Date(year,month+1,0).getDate();
+      let html='';
+      html += `<div class="dp-header"><button type="button" id="dpPrev">◀</button><div><strong>${monthNames[month]}</strong> ${year}</div><button type="button" id="dpNext">▶</button></div>`;
+      html += '<div class="dp-grid">' + dow.map(d=>`<div class="dp-dow">${d}</div>`).join('') + '</div>';
+      const cells=[]; for (let i=0;i<startDow;i++) cells.push(null); for (let d=1; d<=daysInMonth; d++) cells.push(new Date(year,month,d));
+      html += '<div class="dp-grid">';
+      cells.forEach(date=>{ if(!date){ html+='<div></div>'; return; } const isToday=date.toDateString()===today.toDateString(); const iso=`${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`; let cls='dp-cell'; if (CONFIG.POLICY.preventFutureDates){ const todayISO=today.toISOString().slice(0,10); if (iso>todayISO){ cls+=' disabled'; } } if (isToday) cls+=' dp-today'; const sel=hiddenISO.value; if (sel && sel===iso) cls+=' dp-selected'; html += `<div class="${cls}" data-iso="${iso}">${date.getDate()}</div>`; });
+      html += '</div>';
+      picker.innerHTML=html;
+      picker.querySelector('#dpPrev').onclick=()=>{ view=new Date(year,month-1,1); render(); };
+      picker.querySelector('#dpNext').onclick=()=>{ view=new Date(year,month+1,1); render(); };
+      picker.querySelectorAll('.dp-cell').forEach(cell=>{ if(cell.classList.contains('disabled')) return; cell.addEventListener('click',()=>{ const iso=cell.getAttribute('data-iso'); hiddenISO.value=iso; input.value=toDmy(new Date(iso)); document.getElementById('visitDateDisplay').textContent=`Selected: ${input.value}`; picker.classList.remove('open'); updateSubmitState(); }); });
+    }
+    function open(){ picker.classList.add('open'); render(); }
+    function close(){ picker.classList.remove('open'); }
+    input.addEventListener('click', ()=>{ picker.classList.toggle('open'); if (picker.classList.contains('open')) render(); });
+    input.addEventListener('keydown', e=>{ e.preventDefault(); });
+    document.addEventListener('click', e=>{ if (!picker.contains(e.target) && e.target !== input) close(); });
+  }
+
+  // ======= State =======
+  let RUN=null, SCHOOLS=[], EVALUATORS=[]; let udiseCombo, enumCombo;
+
+  async function bootstrap(){
+    document.getElementById('submissionId').value = uuid();
+    if (CONFIG.MODE === 'FETCH'){
+      const q=getQuery(); const runIdFromUrl = q.runId || CONFIG.RUN_ID;
+      const endpoint = CONFIG.DATA_ENDPOINT.replace('REPLACE_RUN_ID', encodeURIComponent(runIdFromUrl));
+      const res = await fetch(endpoint);
+      if (!res.ok) throw new Error('Failed to fetch bootstrap');
+      const data = await res.json();
+      RUN = data.run; SCHOOLS = data.schools || []; EVALUATORS = data.evaluators || [];
+      if (q.ev){ const code=q.ev; const match=EVALUATORS.find(e=>e.code.toLowerCase()===code.toLowerCase()); if (match){ document.getElementById('enumCodeInput').value = `${match.code} — ${match.name}`; document.getElementById('enumNameInput').value = match.name || ''; } else { document.getElementById('enumCodeInput').value = code; } }
+    } else {
+      RUN = window.__BOOTSTRAP__.run; SCHOOLS = window.__BOOTSTRAP__.schools || []; EVALUATORS = window.__BOOTSTRAP__.evaluators || [];
+    }
+    document.getElementById('runId').value = RUN.runId || CONFIG.RUN_ID;
+    document.getElementById('run-meta').textContent = `${RUN.project} · ${RUN.year} · ${RUN.round}`;
+
+    // Grades UI
+    const wrap = document.getElementById('gradesWrap'); wrap.innerHTML='';
+    (RUN.gradesConfigured||[]).forEach(gr=>{ const id=`grade_${gr.replace(/\W+/g,'_')}`; const lbl=document.createElement('label'); lbl.className='check'; lbl.htmlFor=id; lbl.innerHTML = `<input type="checkbox" id="${id}" value="${gr}" /> <span>${gr}</span>`; wrap.appendChild(lbl); });
+
+    // UDISE combo
+    udiseCombo = makeCombo(document.getElementById('udiseCombo'), {
+      items:SCHOOLS,
+      label:s=>`${s.udise} — ${s.schoolName} (${s.block}, ${s.district}, ${s.state})`,
+      key:s=>s.udise,
+      searchFields:['udise','schoolName','block','district','state'],
+      render:s=>`<div><div style="font-weight:600;">${s.udise} — ${s.schoolName}</div><small>${s.block}, ${s.district}, ${s.state} · Enrolled ${s.enrolled} · Required ${s.required}</small></div>`,
+      onSelect:s=>{ const sum=`School: <b>${s.schoolName}</b> · ${s.block}, ${s.district}, ${s.state} · Enrolled <b>${s.enrolled}</b> · Required <b>${s.required}</b>`; document.getElementById('schoolSummary').style.display='block'; document.getElementById('schoolSummary').innerHTML=sum; document.getElementById('udiseError').style.display='none'; updateSubmitState(); }
+    });
+
+    // Enumerator combo
+    enumCombo = makeCombo(document.getElementById('enumCombo'), {
+      items:EVALUATORS,
+      label:e=>`${e.code} — ${e.name}`,
+      key:e=>e.code,
+      searchFields:['code','name'],
+      render:e=>`<div><div style=\"font-weight:600;\">${e.code}</div><small>${e.name}</small></div>`,
+      onSelect:e=>{ document.getElementById('enumNameInput').value = e.name || ''; updateSubmitState(); }
+    });
+    if (!EVALUATORS.length){ document.getElementById('enumList').style.display='none'; }
+
+    bindEvents(); buildDatePicker();
+  }
+
+  function selectedGrades(){ return Array.from(document.querySelectorAll('#gradesWrap input[type="checkbox"]:checked')).map(cb=>cb.value); }
+  function safeKey(s){ return s.replace(/\W+/g,'_'); }
+
+  function renderGradeSections(){
+    const container=document.getElementById('gradeSections'); container.innerHTML='';
+    const subjects = RUN.subjectsConfigured || [];
+    selectedGrades().forEach(grade=>{
+      const gid = safeKey(grade);
+      const div = document.createElement('div');
+      div.className='grade-card';
+      let subjectsInputs = subjects.map(sub => {
+        const sk = safeKey(sub);
+        return `
+          <div>
+            <label for="sub_${sk}_${gid}">Students in ${sub}</label>
+            <input id="sub_${sk}_${gid}" name="sub_${sk}_${gid}" type="number" min="0" step="1" placeholder="0" />
+          </div>`;
+      }).join('');
+      div.innerHTML = `
+        <div class="row" style="justify-content:space-between; align-items:baseline;">
+          <div style="font-weight:700;">${grade}</div>
+          <span class="mutetext">Enter counts for each subject</span>
+        </div>
+        <div class="grid grid-2" style="margin-top:8px;">
+          <div>
+            <label for="present_${gid}">Total students present</label>
+            <input id="present_${gid}" name="present_${gid}" type="number" min="0" step="1" placeholder="0" />
+          </div>
+          <div></div>
+        </div>
+        <div class="grid grid-2" style="margin-top:8px;">${subjectsInputs}</div>
+        <div class="grid grid-2" style="margin-top:8px;">
+          <div>
+            <label for="comments_${gid}">Comments (optional)</label>
+            <input id="comments_${gid}" name="comments_${gid}" type="text" maxlength="1000" placeholder="Any notes…" />
+          </div>
+        </div>
+        <div id="err_${gid}" class="error" style="display:none"></div>`;
+      container.appendChild(div);
+    });
+    updateSubmitState();
+  }
+
+  function currentSchool(){ const v=document.getElementById('udiseInput').value.trim().toLowerCase(); return SCHOOLS.find(s=>(`${s.udise} — ${s.schoolName} (${s.block}, ${s.district}, ${s.state})`).toLowerCase()===v) || null; }
+  function currentEvaluator(){ const v=document.getElementById('enumCodeInput').value.trim().toLowerCase(); const fromList=EVALUATORS.find(e=>e.code.toLowerCase()===v || (`${e.code} — ${e.name}`).toLowerCase()===v) || null; if (EVALUATORS.length) return fromList; return { code: document.getElementById('enumCodeInput').value.trim(), name: document.getElementById('enumNameInput').value.trim(), source:'manual' }; }
+
+  function validateNumbersFor(grade){
+    const gid = safeKey(grade);
+    const present = parseInt(document.getElementById(`present_${gid}`).value,10);
+    const err = document.getElementById(`err_${gid}`);
+    const s = currentSchool();
+    const isNonNegInt=n=>Number.isInteger(n)&&n>=0;
+    let msgs=[];
+    if(!isNonNegInt(present)) msgs.push('Present must be a non‑negative integer.');
+    // per-subject ≤ present
+    (RUN.subjectsConfigured||[]).forEach(sub=>{
+      const sk=safeKey(sub); const n=parseInt(document.getElementById(`sub_${sk}_${gid}`).value,10);
+      if(!isNonNegInt(n)) msgs.push(`${sub} must be a non‑negative integer.`);
+      if(isNonNegInt(n) && isNonNegInt(present) && n>present) msgs.push(`${sub} cannot exceed Present.`);
+    });
+    if(s){
+      if(CONFIG.POLICY.blockIfPresentExceedsRequired && isNonNegInt(present) && s.required>=0 && present>s.required) msgs.push(`Present (${present}) exceeds Required (${s.required}) for this school.`);
+      if(CONFIG.POLICY.blockIfPresentExceedsEnrolled && isNonNegInt(present) && s.enrolled>=0 && present>s.enrolled) msgs.push(`Present (${present}) exceeds Enrolled (${s.enrolled}) for this school.`);
+    }
+    if(msgs.length){ err.style.display='block'; err.innerHTML=msgs.join('<br>'); } else { err.style.display='none'; err.textContent=''; }
+    return msgs.length===0;
+  }
+
+  function updateSubmitState(){
+    const school=currentSchool();
+    const visitISO=toISODate();
+    const todayISO=new Date().toISOString().slice(0,10);
+    const dateOK=visitISO && (!CONFIG.POLICY.preventFutureDates || visitISO<=todayISO);
+    const enumOK=(()=>{ if(EVALUATORS.length){ const e=currentEvaluator(); if(!e) return false; document.getElementById('enumNameInput').value = e?.name || ''; return !!e; } else { return document.getElementById('enumCodeInput').value.trim().length>0 && document.getElementById('enumNameInput').value.trim().length>0; } })();
+    const chosenGrades = Array.from(document.querySelectorAll('#gradesWrap input[type="checkbox"]:checked')).map(cb=>cb.value);
+    const gradesOK=chosenGrades.length>0; let perGradeOK=true; chosenGrades.forEach(g=>{ if(!validateNumbersFor(g)) perGradeOK=false; });
+    const udiseOK=!!school; const ok=!!(udiseOK && dateOK && enumOK && gradesOK && perGradeOK);
+    const status=[]; if(!udiseOK) status.push('choose a UDISE'); if(!dateOK) status.push('pick a valid date'); if(!enumOK) status.push('set enumerator'); if(!gradesOK) status.push('choose grade(s)'); if(!perGradeOK) status.push('fix grade inputs');
+    document.getElementById('formStatus').textContent = ok ? 'Ready to submit' : `Incomplete: ${status.join(', ')}`;
+    document.getElementById('submitBtn').disabled = !ok;
+  }
+
+  // ======= Events =======
+  function bindEvents(){
+    document.getElementById('gradesWrap').addEventListener('change', renderGradeSections);
+    document.getElementById('gradeSections').addEventListener('input', (e)=>{ if (e.target.matches('input[type="number"]')) updateSubmitState(); });
+    document.getElementById('udiseInput').addEventListener('change',()=>{ const v=document.getElementById('udiseInput').value.trim().toLowerCase(); const match=SCHOOLS.find(s=>(`${s.udise} — ${s.schoolName} (${s.block}, ${s.district}, ${s.state})`).toLowerCase()===v); if(!match){ const el=document.getElementById('udiseError'); el.textContent='Please pick a school from the dropdown suggestions.'; el.style.display='block'; } else { document.getElementById('udiseError').style.display='none'; } updateSubmitState(); });
+    document.getElementById('enumCodeInput').addEventListener('input',()=>{ const v=document.getElementById('enumCodeInput').value.trim(); const match=EVALUATORS.find(e=>`${e.code} — ${e.name}`.toLowerCase()===v.toLowerCase() || e.code.toLowerCase()===v.toLowerCase()); if (match){ document.getElementById('enumNameInput').value = match.name || ''; } else if (EVALUATORS.length){ document.getElementById('enumNameInput').value = ''; } updateSubmitState(); });
+    document.getElementById('resetBtn').addEventListener('click',()=>{ document.getElementById('collectorForm').reset(); document.getElementById('gradeSections').innerHTML=''; document.getElementById('visitDateDisplay').textContent=''; updateSubmitState(); });
+    document.getElementById('collectorForm').addEventListener('submit', onSubmit);
+  }
+
+  async function onSubmit(e){
+    e.preventDefault(); updateSubmitState(); if (document.getElementById('submitBtn').disabled) return;
+    const school=currentSchool(); const enumerator=currentEvaluator(); if (EVALUATORS.length && !enumerator){ alert('Please choose an enumerator code from the list.'); return; }
+    const qParams=getQuery(); const runId=(qParams.runId || document.getElementById('runId').value || CONFIG.RUN_ID);
+    const submissionId=document.getElementById('submissionId').value || uuid(); const visitISO=toISODate();
+
+    const chosenGrades = Array.from(document.querySelectorAll('#gradesWrap input[type="checkbox"]:checked')).map(cb=>cb.value);
+
+    const rows = [];
+    chosenGrades.forEach(grade => {
+      const gid = safeKey(grade);
+      const present = parseInt(document.getElementById(`present_${gid}`).value,10)||0;
+      (RUN.subjectsConfigured||[]).forEach(sub => {
+        const sk = safeKey(sub);
+        const count = parseInt(document.getElementById(`sub_${sk}_${gid}`).value,10)||0;
+        rows.push({
+          submissionId,
+          runId,
+          timestampISO: new Date().toISOString(),
+          udise: school.udise,
+          schoolName: school.schoolName,
+          state: school.state,
+          district: school.district,
+          block: school.block,
+          enrolled: school.enrolled,
+          required: school.required,
+          enumeratorCode: enumerator.code,
+          enumeratorName: enumerator.name,
+          visitDateISO: visitISO,
+          visitDateLocal: toDmy(new Date(visitISO)),
+          timezone: 'Asia/Kolkata',
+          grade: grade,
+          present: present,
+          subject: sub,
+          subjectCount: count,
+          comments: (document.getElementById(`comments_${gid}`).value||'').trim(),
+          clientUserAgent: navigator.userAgent||'',
+          clientIpHash: 'na',
+          integrityVersion: '1.1.0',
+          integrityHash: 'na'
+        });
+      });
+    });
+
+    try {
+      document.getElementById('submitBtn').disabled = true; document.getElementById('formStatus').textContent='Submitting…';
+      const res = await fetch(CONFIG.APPS_SCRIPT_URL, { method:'POST', headers:{ 'Content-Type':'text/plain' }, body: JSON.stringify({ runId, rows }) });
+      if (!res.ok){ const text=await res.text(); throw new Error(`Sheets write failed: ${res.status} ${text}`); }
+      const json = await res.json().catch(()=>({ ok:true })); if (json && json.ok===false) throw new Error(json.message||'Sheets adapter rejected the submission');
+      toast('Submission saved'); document.getElementById('formStatus').innerHTML='<span class="success">Saved ✓</span>';
+    } catch(err){ console.error(err); document.getElementById('formStatus').textContent='Error: '+(err.message||err); alert('Failed to save: '+(err.message||err)); }
+    finally { updateSubmitState(); }
+  }
+
+  function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.style.display='inline-flex'; setTimeout(()=> t.style.display='none', 2200); }
+
+  function safeKey(s){ return s.replace(/\W+/g,'_'); }
+
+  // ======= Init =======
+  function bindCombos(){
+    // UDISE combo made in bootstrap when SCHOOLS loaded
+  }
+
+  function buildUI(){ bindEvents(); buildDatePicker(); }
+
+  // Boot
+  let SCHOOLS=[], EVALUATORS=[];
+  function installCombos(){
+    // moved into bootstrap
+  }
+
+  // Reuse of combobox builder is above
+
+  // Start
+  bootstrap().then(()=>{ buildUI(); }).catch(err=>{ console.error(err); document.getElementById('formStatus').textContent='Failed to initialize form. Check bootstrap data.'; });
+})();
+</script>
+</body>
+</html>
