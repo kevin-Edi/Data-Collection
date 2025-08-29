@@ -434,8 +434,14 @@
 
   function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.style.display='inline-flex'; setTimeout(()=> t.style.display='none', 2200); }
 
-  function buildUI(){ bindEvents(); buildDatePicker(); }
-  bootstrap().then(()=>{ buildUI(); }).catch(err=>{ console.error(err); document.getElementById('formStatus').textContent='Failed to initialize form. Check bootstrap data.'; });
+  buildDatePicker(); // attach now
+  bootstrap()
+  .then(()=>{ bindEvents(); })
+  .catch(err=>{ console.error(err);
+    document.getElementById('formStatus').textContent =
+      'Failed to initialize form. Check bootstrap data.';
+  });
+
 })();
 </script>
 </body>
