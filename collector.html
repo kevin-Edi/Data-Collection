@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Assessment Collector — Subjects + Enrollment</title>
+  <title>Assessment Collector — Subjects + Enrollment (Per-Grade Caps)</title>
   <style>
     :root { --bg:#0b1020; --card:#121830; --card-2:#0f1530; --text:#e5e7eb; --muted:#9aa4b2; --primary:#4f46e5; --primary-2:#6366f1; --accent:#22c55e; --danger:#ef4444; --warning:#f59e0b; --border:#26304d; --input:#0d1330; }
     * { box-sizing:border-box; }
@@ -36,7 +36,6 @@
     .success { color:var(--accent); font-weight:600; }
     .footer { margin-top: 16px; display:flex; justify-content:space-between; align-items:center; gap:8px; position:sticky; bottom:0; background: linear-gradient(180deg, rgba(17,23,45,.6), rgba(17,23,45,.95)); backdrop-filter: blur(6px); padding-top:10px; }
 
-    /* Combobox */
     .combo { position: relative; }
     .combo input.combo-input { padding-right: 36px; }
     .combo .chev { position:absolute; right:10px; top:50%; transform: translateY(-50%); opacity:.6; pointer-events:none; }
@@ -46,12 +45,13 @@
     .combo-item:last-child { border-bottom:none; }
     .combo-item:hover, .combo-item.active { background: rgba(99,102,241,0.15); }
 
-    /* Date picker */
     .date-wrap { position: relative; }
-    .date-wrap .icon { position:absolute; right:10px; top:50%; transform: translateY(-50%); opacity:.8; pointer-events:none; }
-    .datepicker { position:absolute; left:0; right:auto; top:calc(100% + 6px); width: 292px; background: var(--card-2); border:1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.35); padding:10px; display:none; z-index:30; }
+    .datepicker { position:absolute; left:0; right:auto; top:calc(100% + 6px); width: 312px; background: var(--card-2); border:1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.35); padding:10px; display:none; z-index:1000; }
     .datepicker.open { display:block; }
-    .dp-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+    .dp-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; gap:8px; }
+    .dp-header .left, .dp-header .right { display:flex; align-items:center; gap:6px; }
+    .dp-header select { background:#0e1532; color:var(--text); border:1px solid var(--border); border-radius:8px; padding:6px 8px; }
+    .dp-header .year-lock { padding:6px 8px; background:#0e1532; border:1px solid var(--border); border-radius:8px; color:var(--muted); }
     .dp-header button { background:#0e1532; color:var(--text); border:1px solid var(--border); border-radius:8px; padding:6px 10px; cursor:pointer; }
     .dp-grid { display:grid; grid-template-columns: repeat(7, 1fr); gap:6px; }
     .dp-cell { text-align:center; padding:8px 0; border-radius:8px; border:1px solid transparent; cursor:pointer; user-select:none; }
@@ -60,8 +60,9 @@
     .dp-dow { color: var(--muted); font-size:12px; text-align:center; padding:4px 0 8px; }
     .dp-today { border-color: var(--primary-2); }
     .dp-selected { background: linear-gradient(180deg, var(--primary-2), var(--primary)); color:#fff; }
+    .dp-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:10px; }
+    .dp-actions .secondary { background:transparent; }
 
-    /* Mobile tweaks */
     input, textarea, select { font-size:16px; }
     .btn { min-height: 44px; }
     .check { padding: 12px 14px; }
@@ -85,25 +86,17 @@
         <input type="hidden" id="submissionId" />
 
         <div class="grid grid-2">
-          <!-- UDISE combobox -->
           <div>
             <label for="udiseInput">UDISE code <span aria-hidden="true" class="mutetext">(type to search, then pick)</span></label>
             <div class="combo" id="udiseCombo">
               <input id="udiseInput" class="combo-input" type="text" placeholder="Search UDISE or school…" autocomplete="off" aria-autocomplete="list" aria-expanded="false" aria-controls="udiseList" />
-              <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <rect x="3" y="4" width="18" height="17" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
-                <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2"/>
-                <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2"/>
-                <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2"/>
-                <rect x="7" y="14" width="3" height="3" fill="currentColor"/>
-              </svg>
+              <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
               <ul id="udiseList" class="combo-list" role="listbox"></ul>
             </div>
             <div id="udiseError" class="error" style="display:none"></div>
             <div id="schoolSummary" class="hint" style="display:none"></div>
           </div>
 
-          <!-- Enumerator code / name -->
           <div>
             <label for="enumCodeInput">Enumerator code</label>
             <div class="combo" id="enumCombo">
@@ -119,7 +112,6 @@
         </div>
 
         <div class="grid grid-2" style="margin-top:6px;">
-          <!-- Visit date -->
           <div>
             <label for="visitDate">Date of visit</label>
             <div class="date-wrap">
@@ -132,7 +124,6 @@
             <div class="mutetext" id="visitDateDisplay" style="margin-top:6px;">&nbsp;</div>
           </div>
 
-          <!-- Enrollment as per register (school total) -->
           <div>
             <label for="enrollmentRegister">Total enrollment as per register (school)</label>
             <input id="enrollmentRegister" type="number" min="0" step="1" placeholder="0" />
@@ -141,7 +132,6 @@
           </div>
         </div>
 
-        <!-- Grades multi-select -->
         <div class="grid" style="margin-top:6px;">
           <div>
             <label>Grades (multi-select)</label>
@@ -167,17 +157,16 @@
 
 <script>
 (() => {
-  // ======= CONFIG =======
-  const BASE = 'https://script.google.com/macros/s/REPLACE_WITH_DEPLOYMENT_ID/exec'; // <-- replace with your /exec URL
+  const BASE = 'https://script.google.com/macros/s/REPLACE_WITH_DEPLOYMENT_ID/exec';
   const CONFIG = {
-    RUN_ID: '',                              // pass ?runId=... in the URL
+    RUN_ID: '',
     MODE: 'FETCH',
     DATA_ENDPOINT: `${BASE}?action=bootstrap&runId=REPLACE_RUN_ID`,
     APPS_SCRIPT_URL: `${BASE}?action=submit`,
-    POLICY: { blockIfPresentExceedsRequired:true, blockIfPresentExceedsEnrolled:true, preventFutureDates:true, checkAgainstRegister:true }
+    // allow any date; year is locked to RUN.year
+    POLICY: { blockIfPresentExceedsRequired:true, blockIfPresentExceedsEnrolled:true, preventFutureDates:false, checkAgainstRegister:true }
   }
 
-  // ======= Helpers =======
   const $ = s => document.querySelector(s);
   const getQuery = () => Object.fromEntries(new URLSearchParams(location.search).entries());
   const pad = n => String(n).padStart(2,'0');
@@ -185,7 +174,6 @@
   const toISODate = () => document.getElementById('visitDateISO').value || '';
   const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)+Date.now());
 
-  // ======= Combobox =======
   function makeCombo(rootEl, opts){
     const input = rootEl.querySelector('.combo-input');
     const list = rootEl.querySelector('.combo-list');
@@ -195,7 +183,7 @@
     const keyOf = item => opts.key ? opts.key(item) : (item.value ?? item.label);
     function setOpen(v){ open=v; rootEl.classList.toggle('open', open); input.setAttribute('aria-expanded', String(open)); }
     function clearList(){ list.innerHTML=''; activeIndex=-1; }
-    function renderList(filtered){ clearList(); filtered.slice(0,200).forEach((item, idx)=>{ const li=document.createElement('li'); li.className='combo-item'; li.role='option'; li.dataset.key=keyOf(item); li.innerHTML=template(item); li.addEventListener('click',()=>choose(item)); list.appendChild(li); }); setOpen(filtered.length>0); }
+    function renderList(filtered){ clearList(); filtered.slice(0,200).forEach((item)=>{ const li=document.createElement('li'); li.className='combo-item'; li.role='option'; li.dataset.key=keyOf(item); li.innerHTML=template(item); li.addEventListener('click',()=>choose(item)); list.appendChild(li); }); setOpen(filtered.length>0); }
     function filter(q){ const s=q.trim().toLowerCase(); if (!s) return items; return items.filter(it => (labelOf(it).toLowerCase().includes(s)) || (opts.searchFields||[]).some(f => String(it[f]||'').toLowerCase().includes(s))); }
     function choose(item){ selected=item; input.value=labelOf(item); setOpen(false); input.dispatchEvent(new Event('change')); opts.onSelect && opts.onSelect(item); }
     function setItems(arr){ items=arr||[]; }
@@ -217,39 +205,134 @@
     return { setItems, getSelected, input };
   }
 
-  // ======= Datepicker =======
+  // --- Date Picker with Month Select, Year Locked, Done/Close controls ---
   function buildDatePicker(){
     const input = document.getElementById('visitDate');
     const hiddenISO = document.getElementById('visitDateISO');
     const picker = document.getElementById('datePicker');
-    let view = new Date();
-    const today = new Date();
+
+    const monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const dow=['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+    // Defaults (will update to RUN.year when bootstrap completes)
+    let yearLock = new Date().getFullYear();
+    let monthIdx = new Date().getMonth();
+    let tempISO = hiddenISO.value || ''; // selection in the popup (committed on Done)
+
     function render(){
-      const monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
-      const dow=['Su','Mo','Tu','We','Th','Fr','Sa'];
-      const year=view.getFullYear(); const month=view.getMonth();
-      const first=new Date(year,month,1); const startDow=first.getDay(); const daysInMonth=new Date(year,month+1,0).getDate();
-      let html='';
-      html += `<div class="dp-header"><button type="button" id="dpPrev">◀</button><div><strong>${monthNames[month]}</strong> ${year}</div><button type="button" id="dpNext">▶</button></div>`;
+      const first=new Date(yearLock,monthIdx,1);
+      const startDow=first.getDay();
+      const daysInMonth=new Date(yearLock,monthIdx+1,0).getDate();
+      const today = new Date();
+      const todayISO = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+
+      let html = '';
+      // Header with month select and year lock
+      html += `<div class="dp-header">
+                 <div class="left">
+                   <select id="dpMonth" aria-label="Month">` +
+                   monthNames.map((m,i)=>`<option value="${i}" ${i===monthIdx?'selected':''}>${m}</option>`).join('') +
+                 `</select>
+                   <div class="year-lock" title="Year is set by assessment">${yearLock}</div>
+                 </div>
+                 <div class="right">
+                   <button type="button" id="dpPrevM" aria-label="Previous month">◀</button>
+                   <button type="button" id="dpNextM" aria-label="Next month">▶</button>
+                 </div>
+               </div>`;
+
+      // Day-of-week headings
       html += '<div class="dp-grid">' + dow.map(d=>`<div class="dp-dow">${d}</div>`).join('') + '</div>';
-      const cells=[]; for (let i=0;i<startDow;i++) cells.push(null); for (let d=1; d<=daysInMonth; d++) cells.push(new Date(year,month,d));
+
+      // Day cells
+      const cells=[]; for (let i=0;i<startDow;i++) cells.push(null); for (let d=1; d<=daysInMonth; d++) cells.push(new Date(yearLock,monthIdx,d));
       html += '<div class="dp-grid">';
-      cells.forEach(date=>{ if(!date){ html+='<div></div>'; return; } const isToday=date.toDateString()===today.toDateString(); const iso=`${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`; let cls='dp-cell'; if (CONFIG.POLICY.preventFutureDates){ const todayISO=today.toISOString().slice(0,10); if (iso>todayISO){ cls+=' disabled'; } } if (isToday) cls+=' dp-today'; const sel=hiddenISO.value; if (sel && sel===iso) cls+=' dp-selected'; html += `<div class="${cls}" data-iso="${iso}">${date.getDate()}</div>`; });
+      cells.forEach(date=>{
+        if(!date){ html+='<div></div>'; return; }
+        const iso=`${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
+        let cls='dp-cell';
+        if (CONFIG.POLICY.preventFutureDates && iso>todayISO) cls+=' disabled';
+        if (tempISO && iso===tempISO) cls+=' dp-selected';
+        if (date.toDateString()===today.toDateString()) cls+=' dp-today';
+        html += `<div class="${cls}" data-iso="${iso}">${date.getDate()}</div>`;
+      });
       html += '</div>';
-      picker.innerHTML=html;
-      picker.querySelector('#dpPrev').onclick=()=>{ view=new Date(year,month-1,1); render(); };
-      picker.querySelector('#dpNext').onclick=()=>{ view=new Date(year,month+1,1); render(); };
-      picker.querySelectorAll('.dp-cell').forEach(cell=>{ if(cell.classList.contains('disabled')) return; cell.addEventListener('click',()=>{ const iso=cell.getAttribute('data-iso'); hiddenISO.value=iso; input.value=toDmy(new Date(iso)); document.getElementById('visitDateDisplay').textContent=`Selected: ${input.value}`; picker.classList.remove('open'); updateSubmitState(); }); });
+
+      // Actions
+      html += `<div class="dp-actions">
+                 <button type="button" id="dpClear" class="secondary">Clear</button>
+                 <button type="button" id="dpDone">Done</button>
+               </div>`;
+
+      picker.innerHTML = html;
+
+      // Wire controls
+      picker.querySelector('#dpMonth').onchange = (e)=>{ monthIdx = parseInt(e.target.value,10); render(); };
+      picker.querySelector('#dpPrevM').onclick = ()=>{ monthIdx = (monthIdx+11)%12; render(); };
+      picker.querySelector('#dpNextM').onclick = ()=>{ monthIdx = (monthIdx+1)%12; render(); };
+
+      // Day selection: highlight only, don't close
+      picker.querySelectorAll('.dp-cell').forEach(cell=>{
+        if(cell.classList.contains('disabled')) return;
+        cell.addEventListener('click', ()=>{
+          tempISO = cell.getAttribute('data-iso');
+          // preview
+          document.getElementById('visitDateDisplay').textContent = `Selected: ${toDmy(new Date(tempISO))}`;
+          render(); // re-render to apply selection style
+        });
+      });
+
+      // Done commits tempISO to input + hidden, then closes
+      picker.querySelector('#dpDone').onclick = ()=>{
+        if (tempISO) {
+          hiddenISO.value = tempISO;
+          input.value = toDmy(new Date(tempISO));
+          document.getElementById('visitDateDisplay').textContent = `Selected: ${input.value}`;
+        }
+        picker.classList.remove('open');
+        updateSubmitState();
+      };
+
+      // Clear removes selection
+      picker.querySelector('#dpClear').onclick = ()=>{
+        tempISO = '';
+        hiddenISO.value = '';
+        input.value = '';
+        document.getElementById('visitDateDisplay').textContent = '';
+        render();
+        updateSubmitState();
+      };
     }
+
     function open(){ picker.classList.add('open'); render(); }
     function close(){ picker.classList.remove('open'); }
+
     input.addEventListener('click', ()=>{ picker.classList.toggle('open'); if (picker.classList.contains('open')) render(); });
     input.addEventListener('keydown', e=>{ e.preventDefault(); });
+    input.addEventListener('focus', ()=>{ picker.classList.add('open'); render(); });
+
+    // click outside => close (kept for UX)
     document.addEventListener('click', e=>{ if (!picker.contains(e.target) && e.target !== input) close(); });
+
+    // expose a setter so bootstrap can lock the year from Admin
+    function setYear(y){
+      const ny = Number(y);
+      if (Number.isFinite(ny) && ny>=1900 && ny<=3000) {
+        yearLock = ny;
+        // If previously selected date is not in this year, clear preview (keep committed value)
+        if (tempISO && !tempISO.startsWith(String(yearLock))) {
+          tempISO = '';
+          document.getElementById('visitDateDisplay').textContent = '';
+        }
+        render();
+      }
+    }
+
+    return { setYear };
   }
 
-  // ======= State =======
   let RUN=null, SCHOOLS=[], EVALUATORS=[]; let udiseCombo, enumCombo;
+  let DATEPICKER = null;
 
   async function bootstrap(){
     document.getElementById('submissionId').value = uuid();
@@ -263,11 +346,12 @@
     document.getElementById('runId').value = RUN.runId || runIdFromUrl;
     document.getElementById('run-meta').textContent = `${RUN.project} · ${RUN.year} · ${RUN.round}`;
 
-    // Grades UI
+    // Lock calendar year to admin-set assessment year
+    if (DATEPICKER && RUN.year) DATEPICKER.setYear(parseInt(RUN.year,10));
+
     const wrap = document.getElementById('gradesWrap'); wrap.innerHTML='';
     (RUN.gradesConfigured||[]).forEach(gr=>{ const id=`grade_${safeKey(gr)}`; const lbl=document.createElement('label'); lbl.className='check'; lbl.htmlFor=id; lbl.innerHTML = `<input type="checkbox" id="${id}" value="${gr}" /> <span>${gr}</span>`; wrap.appendChild(lbl); });
 
-    // UDISE combo
     udiseCombo = makeCombo(document.getElementById('udiseCombo'), {
       items:SCHOOLS,
       label:s=>`${s.udise} — ${s.schoolName} (${s.block}, ${s.district}, ${s.state})`,
@@ -277,7 +361,6 @@
       onSelect:s=>{ const sum=`School: <b>${s.schoolName}</b> · ${s.block}, ${s.district}, ${s.state} · Admin Enrolled <b>${s.enrolled}</b> · Required <b>${s.required}</b>`; document.getElementById('schoolSummary').style.display='block'; document.getElementById('schoolSummary').innerHTML=sum; document.getElementById('udiseError').style.display='none'; updateSubmitState(); }
     });
 
-    // Enumerator combo
     enumCombo = makeCombo(document.getElementById('enumCombo'), {
       items:EVALUATORS,
       label:e=>`${e.code} — ${e.name}`,
@@ -288,7 +371,7 @@
     });
     if (!EVALUATORS.length){ document.getElementById('enumList').style.display='none'; }
 
-    bindEvents(); buildDatePicker();
+    bindEvents();
   }
 
   function selectedGrades(){ return Array.from(document.querySelectorAll('#gradesWrap input[type="checkbox"]:checked')).map(cb=>cb.value); }
@@ -296,7 +379,7 @@
 
   function renderGradeSections(){
     const container=document.getElementById('gradeSections'); container.innerHTML='';
-    const subjects = RUN.subjectsConfigured || [];
+    const subjects = RUN?.subjectsConfigured || [];
     selectedGrades().forEach(grade=>{
       const gid = safeKey(grade);
       const div = document.createElement('div');
@@ -343,18 +426,25 @@
     const err = document.getElementById(`err_${gid}`);
     const s = currentSchool();
     const regEnroll = parseInt(document.getElementById('enrollmentRegister').value,10);
+    const perEn = s && s.gEnrolled ? s.gEnrolled[grade] : undefined;
+    const perRq = s && s.gRequired ? s.gRequired[grade] : undefined;
     const isNonNegInt=n=>Number.isInteger(n)&&n>=0;
     let msgs=[];
-    if(!isNonNegInt(present)) msgs.push('Present must be a non‑negative integer.');
-    // per-subject ≤ present
-    (RUN.subjectsConfigured||[]).forEach(sub=>{
+    if(!isNonNegInt(present)) msgs.push('Present must be a non-negative integer.');
+    (RUN?.subjectsConfigured||[]).forEach(sub=>{
       const sk=safeKey(sub); const n=parseInt(document.getElementById(`sub_${sk}_${gid}`).value,10);
-      if(!isNonNegInt(n)) msgs.push(`${sub} must be a non‑negative integer.`);
+      if(!isNonNegInt(n)) msgs.push(`${sub} must be a non-negative integer.`);
       if(isNonNegInt(n) && isNonNegInt(present) && n>present) msgs.push(`${sub} cannot exceed Present.`);
     });
     if(s){
-      if(CONFIG.POLICY.blockIfPresentExceedsRequired && isNonNegInt(present) && s.required>=0 && present>s.required) msgs.push(`Present (${present}) exceeds Required (${s.required}) for this school.`);
-      if(CONFIG.POLICY.blockIfPresentExceedsEnrolled && isNonNegInt(present) && s.enrolled>=0 && present>s.enrolled) msgs.push(`Present (${present}) exceeds Admin Enrolled (${s.enrolled}).`);
+      if(CONFIG.POLICY.blockIfPresentExceedsRequired && isNonNegInt(present)){
+        const cap = Number.isFinite(perRq) ? perRq : s.required;
+        if (Number.isFinite(cap) && present>cap) msgs.push(`Present (${present}) exceeds Required for ${grade} (${cap}).`);
+      }
+      if(CONFIG.POLICY.blockIfPresentExceedsEnrolled && isNonNegInt(present)){
+        const cap = Number.isFinite(perEn) ? perEn : s.enrolled;
+        if (Number.isFinite(cap) && present>cap) msgs.push(`Present (${present}) exceeds Enrolled for ${grade} (${cap}).`);
+      }
     }
     if(CONFIG.POLICY.checkAgainstRegister && isNonNegInt(present) && Number.isInteger(regEnroll) && regEnroll>=0 && present>regEnroll){ msgs.push(`Present (${present}) exceeds Register Enrollment (${regEnroll}).`); }
     if(msgs.length){ err.style.display='block'; err.innerHTML=msgs.join('<br>'); } else { err.style.display='none'; err.textContent=''; }
@@ -374,7 +464,7 @@
     const regEnroll = parseInt(regEnrollInput.value,10);
     const regOK = Number.isInteger(regEnroll) && regEnroll>=0;
     const enrollErr = document.getElementById('enrollError');
-    if(!regOK){ enrollErr.style.display='block'; enrollErr.textContent='Enter a non‑negative integer.'; } else { enrollErr.style.display='none'; }
+    if(!regOK){ enrollErr.style.display='block'; enrollErr.textContent='Enter a non-negative integer.'; } else { enrollErr.style.display='none'; }
 
     const udiseOK=!!school; const ok=!!(udiseOK && dateOK && enumOK && gradesOK && perGradeOK && regOK);
     const status=[]; if(!udiseOK) status.push('choose a UDISE'); if(!dateOK) status.push('pick a valid date'); if(!enumOK) status.push('set enumerator'); if(!gradesOK) status.push('choose grade(s)'); if(!perGradeOK) status.push('fix grade inputs'); if(!regOK) status.push('enter register enrollment');
@@ -382,7 +472,6 @@
     document.getElementById('submitBtn').disabled = !ok;
   }
 
-  // ======= Events =======
   function bindEvents(){
     document.getElementById('gradesWrap').addEventListener('change', renderGradeSections);
     document.getElementById('gradeSections').addEventListener('input', (e)=>{ if (e.target.matches('input[type="number"]')) updateSubmitState(); });
@@ -406,7 +495,7 @@
     chosenGrades.forEach(grade => {
       const gid = safeKey(grade);
       const present = parseInt(document.getElementById(`present_${gid}`).value,10)||0;
-      (RUN.subjectsConfigured||[]).forEach(sub => {
+      (RUN?.subjectsConfigured||[]).forEach(sub => {
         const sk = safeKey(sub);
         const count = parseInt(document.getElementById(`sub_${sk}_${gid}`).value,10)||0;
         rows.push({
@@ -420,7 +509,7 @@
           block: school.block,
           enrolled: school.enrolled,
           required: school.required,
-          enrollmentAsPerRegister: regEnroll, // NEW FIELD (requires column in Submissions sheet)
+          enrollmentAsPerRegister: regEnroll,
           enumeratorCode: enumerator.code,
           enumeratorName: enumerator.name,
           visitDateISO: visitISO,
@@ -433,7 +522,7 @@
           comments: (document.getElementById(`comments_${gid}`).value||'').trim(),
           clientUserAgent: navigator.userAgent||'',
           clientIpHash: 'na',
-          integrityVersion: '1.2.0',
+          integrityVersion: '1.3.0',
           integrityHash: 'na'
         });
       });
@@ -451,12 +540,17 @@
 
   function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.style.display='inline-flex'; setTimeout(()=> t.style.display='none', 2200); }
 
-  // ======= Init =======
-  function buildUI(){ bindEvents(); buildDatePicker(); }
-  bootstrap().then(()=>{ buildUI(); }).catch(err=>{ console.error(err); document.getElementById('formStatus').textContent='Failed to initialize form. Check bootstrap data.'; });
+  // Make calendar available even without backend
+  DATEPICKER = buildDatePicker();
+  bindEvents();
+
+  // Load run + lock year when available
+  bootstrap().then(()=>{ /* DATEPICKER.setYear was called in bootstrap if RUN.year exists */ })
+             .catch(err=>{ console.error(err); document.getElementById('formStatus').textContent='Failed to initialize form. Check bootstrap data.'; });
 })();
 </script>
 </body>
 </html>
+
 
 
