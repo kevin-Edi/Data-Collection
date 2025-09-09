@@ -277,27 +277,54 @@
   }
 
   async function refreshRuns(){
-    if (!cfg.script){ setStatus($('#runs_status'),'Set Script URL in Configuration','error'); return; }
-    setStatus($('#runs_status'),'Loading…');
-    try{
-      const res=await fetch(cfg.script+'?action=listruns');
-      const json=await res.json();
-      if (!json.ok || !Array.isArray(json.runs)) throw new Error(json.error||'Failed');
-      const tbody=$('#runs_table tbody'); tbody.innerHTML='';
-      json.runs.forEach(r=>{
-        const runId=String(r.runId||''); const grades=String(r.gradesConfigured||''); const subjects=String(r.subjectsConfigured||'');
-        const tr=document.createElement('tr');
-        const link=cfg.collector ? `${cfg.collector}?runId=${encodeURIComponent(runId)}` : '(set Collector URL)';
-        tr.innerHTML=`<td><span class="kbd">${runId}</span></td><td>${r.project||''}</td><td>${r.year||''}</td><td>${r.round||''}</td><td>${grades}</td><td>${subjects}</td><td><div class="row"><button class="btn small secondary" data-link="${link}">Copy link</button><span class="muted">&nbsp;Add <span class="kbd">&ev=EV-0001</span> for evaluator-specific</span></div></td>`;
-        tbody.appendChild(tr);
+  if (!cfg.script){ setStatus($('#runs_status'),'Set Script URL in Configuration','error'); return; }
+  setStatus($('#runs_status'),'Loading…');
+
+  try{
+    const res = await fetch(cfg.script+'?action=listruns');
+    const json = await res.json();
+    if (!json.ok || !Array.isArray(json.runs)) throw new Error(json.error || 'Failed');
+
+    // sort newest-first using any timestamp-ish field, then cap to 5
+    const ts = r => new Date(r.createdAt || r.created || r.timestamp || r.ts || r.updatedAt || 0).getTime();
+    const capped = json.runs.slice().sort((a,b)=> ts(b) - ts(a)).slice(0,5);
+
+    const tbody = $('#runs_table tbody');
+    tbody.innerHTML = '';
+    capped.forEach(r=>{
+      const runId = String(r.runId||'');
+      const grades = String(r.gradesConfigured||'');
+      const subjects = String(r.subjectsConfigured||'');
+      const link = cfg.collector ? `${cfg.collector}?runId=${encodeURIComponent(runId)}` : '(set Collector URL)';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><span class="kbd">${runId}</span></td>
+        <td>${r.project||''}</td>
+        <td>${r.year||''}</td>
+        <td>${r.round||''}</td>
+        <td>${grades}</td>
+        <td>${subjects}</td>
+        <td>
+          <div class="row">
+            <button class="btn small secondary" data-link="${link}">Copy link</button>
+            <span class="muted">&nbsp;Add <span class="kbd">&ev=EV-0001</span> for evaluator-specific</span>
+          </div>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+
+    tbody.querySelectorAll('button[data-link]').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        navigator.clipboard.writeText(btn.getAttribute('data-link'));
+        toast('Copied');
       });
-      tbody.querySelectorAll('button[data-link]').forEach(btn=>{ btn.addEventListener('click',()=>{ navigator.clipboard.writeText(btn.getAttribute('data-link')); toast('Copied'); }); });
-      setStatus($('#runs_status'), `Loaded ${json.runs.length} run(s)`);
-    } catch(err){ setStatus($('#runs_status'), String(err),'error'); }
+    });
+
+    setStatus($('#runs_status'), `Showing ${capped.length} of ${json.runs.length} run(s) — most recent first`);
+  } catch(err){
+    setStatus($('#runs_status'), String(err), 'error');
   }
-  document.getElementById('btn_refresh_runs').onclick = refreshRuns;
-  if (cfg.script) refreshRuns();
-})();
+}
 </script>
 </body>
 </html>
