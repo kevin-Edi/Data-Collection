@@ -157,7 +157,7 @@
 
 <script>
 (() => {
-  const BASE = 'https://script.google.com/macros/s/AKfycbyHFOOWg20nHiec3S7bW2oDO7kf09dGIxL82ZG0alWMZg2Ovd2NXRhE8WP5gfAq7tsa/exec';
+  const BASE = 'https://script.google.com/macros/s/REPLACE_WITH_DEPLOYMENT_ID/exec';
   const CONFIG = {
     RUN_ID: '',
     MODE: 'FETCH',
@@ -402,7 +402,10 @@
             <label for="present_${gid}">Total students present</label>
             <input id="present_${gid}" name="present_${gid}" type="number" min="0" step="1" placeholder="0" />
           </div>
-          <div></div>
+          <div>
+            <label for="reg_${gid}">Register enrollment (this grade)</label>
+            <input id="reg_${gid}" name="reg_${gid}" type="number" min="0" step="1" placeholder="0" />
+          </div>
         </div>
         <div class="grid grid-2" style="margin-top:8px;">${subjectsInputs}</div>
         <div class="grid grid-2" style="margin-top:8px;">
@@ -425,7 +428,10 @@
     const present = parseInt(document.getElementById(`present_${gid}`).value,10);
     const err = document.getElementById(`err_${gid}`);
     const s = currentSchool();
+    const regGradeEl = document.getElementById(`reg_${gid}`);
+    const regGrade = regGradeEl ? parseInt(regGradeEl.value,10) : NaN;
     const regEnroll = parseInt(document.getElementById('enrollmentRegister').value,10);
+    const regCap = (Number.isInteger(regGrade) && regGrade >= 0) ? regGrade : regEnroll;
     const perEn = s && s.gEnrolled ? s.gEnrolled[grade] : undefined;
     const perRq = s && s.gRequired ? s.gRequired[grade] : undefined;
     const isNonNegInt=n=>Number.isInteger(n)&&n>=0;
@@ -446,7 +452,7 @@
         if (Number.isFinite(cap) && present>cap) msgs.push(`Present (${present}) exceeds Enrolled for ${grade} (${cap}).`);
       }
     }
-    if(CONFIG.POLICY.checkAgainstRegister && isNonNegInt(present) && Number.isInteger(regEnroll) && regEnroll>=0 && present>regEnroll){ msgs.push(`Present (${present}) exceeds Register Enrollment (${regEnroll}).`); }
+    if (CONFIG.POLICY.checkAgainstRegister && isNonNegInt(present) && Number.isInteger(regCap) && regCap >= 0 && present > regCap) { msgs.push(`Present (${present}) exceeds Register Enrollment for ${grade} (${regCap}).`); }
     if(msgs.length){ err.style.display='block'; err.innerHTML=msgs.join('<br>'); } else { err.style.display='none'; err.textContent=''; }
     return msgs.length===0;
   }
@@ -495,6 +501,7 @@
     chosenGrades.forEach(grade => {
       const gid = safeKey(grade);
       const present = parseInt(document.getElementById(`present_${gid}`).value,10)||0;
+      const regGrade = parseInt(document.getElementById(`reg_${gid}`).value,10);
       (RUN?.subjectsConfigured||[]).forEach(sub => {
         const sk = safeKey(sub);
         const count = parseInt(document.getElementById(`sub_${sk}_${gid}`).value,10)||0;
@@ -517,6 +524,7 @@
           timezone: 'Asia/Kolkata',
           grade: grade,
           present: present,
+          gradeEnrollmentAsPerRegister: (Number.isInteger(regGrade) && regGrade >= 0) ? regGrade : '',
           subject: sub,
           subjectCount: count,
           comments: (document.getElementById(`comments_${gid}`).value||'').trim(),
@@ -551,6 +559,7 @@
 </script>
 </body>
 </html>
+
 
 
 
