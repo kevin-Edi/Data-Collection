@@ -78,7 +78,7 @@
 
     <div class="card">
       <h2 style="margin:0 0 8px; font-size: 18px;">Visit details</h2>
-      <p class="mutetext" style="margin-top:0">Select school, enumerator, date, grades and enter counts for each subject. Also record total enrollment as per the register.</p>
+      <p class="mutetext" style="margin-top:0">Select school, enumerator, date, grades and enter counts for each subject. (Per-grade register enrollment can be entered inside each grade.)</p>
       <div class="divider"></div>
 
       <form id="collectorForm" novalidate>
@@ -111,7 +111,8 @@
           </div>
         </div>
 
-        <div class="grid grid-2" style="margin-top:6px;">
+        <!-- Only Date now (overall school enrollment has been removed) -->
+        <div class="grid" style="margin-top:6px;">
           <div>
             <label for="visitDate">Date of visit</label>
             <div class="date-wrap">
@@ -122,13 +123,6 @@
             </div>
             <div class="hint">Format: dd/MM/yyyy. Tap to pick from calendar.</div>
             <div class="mutetext" id="visitDateDisplay" style="margin-top:6px;">&nbsp;</div>
-          </div>
-
-          <div>
-            <label for="enrollmentRegister">Total enrollment as per register (school)</label>
-            <input id="enrollmentRegister" type="number" min="0" step="1" placeholder="0" />
-            <div class="hint">Collected on visit from the school's register; used for validation and stored with each row.</div>
-            <div id="enrollError" class="error" style="display:none"></div>
           </div>
         </div>
 
@@ -163,7 +157,7 @@
     MODE: 'FETCH',
     DATA_ENDPOINT: `${BASE}?action=bootstrap&runId=REPLACE_RUN_ID`,
     APPS_SCRIPT_URL: `${BASE}?action=submit`,
-    // allow any date; year is locked to RUN.year
+    // present can be <, =, or > enrolled/required; only check subjects <= present and (optional) per-grade register
     POLICY: { blockIfPresentExceedsRequired:false, blockIfPresentExceedsEnrolled:false, preventFutureDates:false, checkAgainstRegister:true }
   }
 
@@ -178,7 +172,7 @@
     const input = rootEl.querySelector('.combo-input');
     const list = rootEl.querySelector('.combo-list');
     let open = false, items = opts.items || [], activeIndex = -1, selected = null;
-    const template = item => opts.render ? opts.render(item) : `<div class=\"combo-item\">${opts.label(item)}</div>`;
+    const template = item => opts.render ? opts.render(item) : `<div class="combo-item">${opts.label(item)}</div>`;
     const labelOf = item => opts.label ? opts.label(item) : (item.label || '');
     const keyOf = item => opts.key ? opts.key(item) : (item.value ?? item.label);
     function setOpen(v){ open=v; rootEl.classList.toggle('open', open); input.setAttribute('aria-expanded', String(open)); }
@@ -214,10 +208,9 @@
     const monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
     const dow=['Su','Mo','Tu','We','Th','Fr','Sa'];
 
-    // Defaults (will update to RUN.year when bootstrap completes)
     let yearLock = new Date().getFullYear();
     let monthIdx = new Date().getMonth();
-    let tempISO = hiddenISO.value || ''; // selection in the popup (committed on Done)
+    let tempISO = hiddenISO.value || '';
 
     function render(){
       const first=new Date(yearLock,monthIdx,1);
@@ -227,7 +220,6 @@
       const todayISO = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
 
       let html = '';
-      // Header with month select and year lock
       html += `<div class="dp-header">
                  <div class="left">
                    <select id="dpMonth" aria-label="Month">` +
@@ -241,10 +233,8 @@
                  </div>
                </div>`;
 
-      // Day-of-week headings
       html += '<div class="dp-grid">' + dow.map(d=>`<div class="dp-dow">${d}</div>`).join('') + '</div>';
 
-      // Day cells
       const cells=[]; for (let i=0;i<startDow;i++) cells.push(null); for (let d=1; d<=daysInMonth; d++) cells.push(new Date(yearLock,monthIdx,d));
       html += '<div class="dp-grid">';
       cells.forEach(date=>{
@@ -258,7 +248,6 @@
       });
       html += '</div>';
 
-      // Actions
       html += `<div class="dp-actions">
                  <button type="button" id="dpClear" class="secondary">Clear</button>
                  <button type="button" id="dpDone">Done</button>
@@ -266,23 +255,19 @@
 
       picker.innerHTML = html;
 
-      // Wire controls
       picker.querySelector('#dpMonth').onchange = (e)=>{ monthIdx = parseInt(e.target.value,10); render(); };
       picker.querySelector('#dpPrevM').onclick = ()=>{ monthIdx = (monthIdx+11)%12; render(); };
       picker.querySelector('#dpNextM').onclick = ()=>{ monthIdx = (monthIdx+1)%12; render(); };
 
-      // Day selection: highlight only, don't close
       picker.querySelectorAll('.dp-cell').forEach(cell=>{
         if(cell.classList.contains('disabled')) return;
         cell.addEventListener('click', ()=>{
           tempISO = cell.getAttribute('data-iso');
-          // preview
           document.getElementById('visitDateDisplay').textContent = `Selected: ${toDmy(new Date(tempISO))}`;
-          render(); // re-render to apply selection style
+          render();
         });
       });
 
-      // Done commits tempISO to input + hidden, then closes
       picker.querySelector('#dpDone').onclick = ()=>{
         if (tempISO) {
           hiddenISO.value = tempISO;
@@ -293,7 +278,6 @@
         updateSubmitState();
       };
 
-      // Clear removes selection
       picker.querySelector('#dpClear').onclick = ()=>{
         tempISO = '';
         hiddenISO.value = '';
@@ -311,15 +295,12 @@
     input.addEventListener('keydown', e=>{ e.preventDefault(); });
     input.addEventListener('focus', ()=>{ picker.classList.add('open'); render(); });
 
-    // click outside => close (kept for UX)
     document.addEventListener('click', e=>{ if (!picker.contains(e.target) && e.target !== input) close(); });
 
-    // expose a setter so bootstrap can lock the year from Admin
     function setYear(y){
       const ny = Number(y);
       if (Number.isFinite(ny) && ny>=1900 && ny<=3000) {
         yearLock = ny;
-        // If previously selected date is not in this year, clear preview (keep committed value)
         if (tempISO && !tempISO.startsWith(String(yearLock))) {
           tempISO = '';
           document.getElementById('visitDateDisplay').textContent = '';
@@ -328,7 +309,14 @@
       }
     }
 
-    return { setYear };
+    function clear(){
+      tempISO = '';
+      hiddenISO.value = '';
+      input.value = '';
+      document.getElementById('visitDateDisplay').textContent = '';
+    }
+
+    return { setYear, clear };
   }
 
   let RUN=null, SCHOOLS=[], EVALUATORS=[]; let udiseCombo, enumCombo;
@@ -346,7 +334,6 @@
     document.getElementById('runId').value = RUN.runId || runIdFromUrl;
     document.getElementById('run-meta').textContent = `${RUN.project} · ${RUN.year} · ${RUN.round}`;
 
-    // Lock calendar year to admin-set assessment year
     if (DATEPICKER && RUN.year) DATEPICKER.setYear(parseInt(RUN.year,10));
 
     const wrap = document.getElementById('gradesWrap'); wrap.innerHTML='';
@@ -366,7 +353,7 @@
       label:e=>`${e.code} — ${e.name}`,
       key:e=>e.code,
       searchFields:['code','name'],
-      render:e=>`<div><div style=\"font-weight:600;\">${e.code}</div><small>${e.name}</small></div>`,
+      render:e=>`<div><div style="font-weight:600;">${e.code}</div><small>${e.name}</small></div>`,
       onSelect:e=>{ document.getElementById('enumNameInput').value = e.name || ''; updateSubmitState(); }
     });
     if (!EVALUATORS.length){ document.getElementById('enumList').style.display='none'; }
@@ -427,13 +414,9 @@
     const gid = safeKey(grade);
     const present = parseInt(document.getElementById(`present_${gid}`).value,10);
     const err = document.getElementById(`err_${gid}`);
-    const s = currentSchool();
     const regGradeEl = document.getElementById(`reg_${gid}`);
     const regGrade = regGradeEl ? parseInt(regGradeEl.value,10) : NaN;
-    const regEnroll = parseInt(document.getElementById('enrollmentRegister').value,10);
-    const regCap = (Number.isInteger(regGrade) && regGrade >= 0) ? regGrade : regEnroll;
-    const perEn = s && s.gEnrolled ? s.gEnrolled[grade] : undefined;
-    const perRq = s && s.gRequired ? s.gRequired[grade] : undefined;
+
     const isNonNegInt=n=>Number.isInteger(n)&&n>=0;
     let msgs=[];
     if(!isNonNegInt(present)) msgs.push('Present must be a non-negative integer.');
@@ -442,17 +425,12 @@
       if(!isNonNegInt(n)) msgs.push(`${sub} must be a non-negative integer.`);
       if(isNonNegInt(n) && isNonNegInt(present) && n>present) msgs.push(`${sub} cannot exceed Present.`);
     });
-    if(s){
-      if(CONFIG.POLICY.blockIfPresentExceedsRequired && isNonNegInt(present)){
-        const cap = Number.isFinite(perRq) ? perRq : s.required;
-        if (Number.isFinite(cap) && present>cap) msgs.push(`Present (${present}) exceeds Required for ${grade} (${cap}).`);
-      }
-      if(CONFIG.POLICY.blockIfPresentExceedsEnrolled && isNonNegInt(present)){
-        const cap = Number.isFinite(perEn) ? perEn : s.enrolled;
-        if (Number.isFinite(cap) && present>cap) msgs.push(`Present (${present}) exceeds Enrolled for ${grade} (${cap}).`);
-      }
+
+    // Optional per-grade register cap (if provided)
+    if (CONFIG.POLICY.checkAgainstRegister && isNonNegInt(present) && Number.isInteger(regGrade) && regGrade >= 0 && present > regGrade) {
+      msgs.push(`Present (${present}) exceeds Register Enrollment for ${grade} (${regGrade}).`);
     }
-    if (CONFIG.POLICY.checkAgainstRegister && isNonNegInt(present) && Number.isInteger(regCap) && regCap >= 0 && present > regCap) { msgs.push(`Present (${present}) exceeds Register Enrollment for ${grade} (${regCap}).`); }
+
     if(msgs.length){ err.style.display='block'; err.innerHTML=msgs.join('<br>'); } else { err.style.display='none'; err.textContent=''; }
     return msgs.length===0;
   }
@@ -466,14 +444,8 @@
     const chosenGrades = Array.from(document.querySelectorAll('#gradesWrap input[type="checkbox"]:checked')).map(cb=>cb.value);
     const gradesOK=chosenGrades.length>0; let perGradeOK=true; chosenGrades.forEach(g=>{ if(!validateNumbersFor(g)) perGradeOK=false; });
 
-    const regEnrollInput = document.getElementById('enrollmentRegister');
-    const regEnroll = parseInt(regEnrollInput.value,10);
-    const regOK = Number.isInteger(regEnroll) && regEnroll>=0;
-    const enrollErr = document.getElementById('enrollError');
-    if(!regOK){ enrollErr.style.display='block'; enrollErr.textContent='Enter a non-negative integer.'; } else { enrollErr.style.display='none'; }
-
-    const udiseOK=!!school; const ok=!!(udiseOK && dateOK && enumOK && gradesOK && perGradeOK && regOK);
-    const status=[]; if(!udiseOK) status.push('choose a UDISE'); if(!dateOK) status.push('pick a valid date'); if(!enumOK) status.push('set enumerator'); if(!gradesOK) status.push('choose grade(s)'); if(!perGradeOK) status.push('fix grade inputs'); if(!regOK) status.push('enter register enrollment');
+    const udiseOK=!!school; const ok=!!(udiseOK && dateOK && enumOK && gradesOK && perGradeOK);
+    const status=[]; if(!udiseOK) status.push('choose a UDISE'); if(!dateOK) status.push('pick a valid date'); if(!enumOK) status.push('set enumerator'); if(!gradesOK) status.push('choose grade(s)'); if(!perGradeOK) status.push('fix grade inputs');
     document.getElementById('formStatus').textContent = ok ? 'Ready to submit' : `Incomplete: ${status.join(', ')}`;
     document.getElementById('submitBtn').disabled = !ok;
   }
@@ -483,7 +455,6 @@
     document.getElementById('gradeSections').addEventListener('input', (e)=>{ if (e.target.matches('input[type="number"]')) updateSubmitState(); });
     document.getElementById('udiseInput').addEventListener('change',()=>{ const v=document.getElementById('udiseInput').value.trim().toLowerCase(); const match=SCHOOLS.find(s=>(`${s.udise} — ${s.schoolName} (${s.block}, ${s.district}, ${s.state})`).toLowerCase()===v); if(!match){ const el=document.getElementById('udiseError'); el.textContent='Please pick a school from the dropdown suggestions.'; el.style.display='block'; } else { document.getElementById('udiseError').style.display='none'; } updateSubmitState(); });
     document.getElementById('enumCodeInput').addEventListener('input',()=>{ const v=document.getElementById('enumCodeInput').value.trim(); const match=EVALUATORS.find(e=>`${e.code} — ${e.name}`.toLowerCase()===v.toLowerCase() || e.code.toLowerCase()===v.toLowerCase()); if (match){ document.getElementById('enumNameInput').value = match.name || ''; } else if (EVALUATORS.length){ document.getElementById('enumNameInput').value = ''; } updateSubmitState(); });
-    document.getElementById('enrollmentRegister').addEventListener('input', updateSubmitState);
     document.getElementById('resetBtn').addEventListener('click',()=>{ document.getElementById('collectorForm').reset(); document.getElementById('gradeSections').innerHTML=''; document.getElementById('visitDateDisplay').textContent=''; updateSubmitState(); });
     document.getElementById('collectorForm').addEventListener('submit', onSubmit);
   }
@@ -493,7 +464,6 @@
     const school=currentSchool(); const enumerator=currentEvaluator(); if (EVALUATORS.length && !enumerator){ alert('Please choose an enumerator code from the list.'); return; }
     const qParams=getQuery(); const runId=(qParams.runId || document.getElementById('runId').value || CONFIG.RUN_ID);
     const submissionId=document.getElementById('submissionId').value || uuid(); const visitISO=toISODate();
-    const regEnroll = parseInt(document.getElementById('enrollmentRegister').value,10) || 0;
 
     const chosenGrades = Array.from(document.querySelectorAll('#gradesWrap input[type="checkbox"]:checked')).map(cb=>cb.value);
 
@@ -516,7 +486,6 @@
           block: school.block,
           enrolled: school.enrolled,
           required: school.required,
-          enrollmentAsPerRegister: regEnroll,
           enumeratorCode: enumerator.code,
           enumeratorName: enumerator.name,
           visitDateISO: visitISO,
@@ -542,24 +511,45 @@
       if (!res.ok){ const text=await res.text(); throw new Error(`Sheets write failed: ${res.status} ${text}`); }
       const json = await res.json().catch(()=>({ ok:true })); if (json && json.ok===false) throw new Error(json.message||'Sheets adapter rejected the submission');
       toast('Submission saved'); document.getElementById('formStatus').innerHTML='<span class="success">Saved ✓</span>';
+      clearFormAfterSubmit();
     } catch(err){ console.error(err); document.getElementById('formStatus').textContent='Error: '+(err.message||err); alert('Failed to save: '+(err.message||err)); }
     finally { updateSubmitState(); }
   }
 
   function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.style.display='inline-flex'; setTimeout(()=> t.style.display='none', 2200); }
 
-  // Make calendar available even without backend
+  function clearFormAfterSubmit(){
+    const form = document.getElementById('collectorForm');
+    form.reset();
+    document.getElementById('gradeSections').innerHTML = '';
+    document.getElementById('schoolSummary').style.display = 'none';
+    document.getElementById('udiseError').style.display = 'none';
+
+    if (typeof DATEPICKER?.clear === 'function') DATEPICKER.clear();
+    else {
+      document.getElementById('visitDateISO').value = '';
+      document.getElementById('visitDate').value = '';
+      document.getElementById('visitDateDisplay').textContent = '';
+    }
+
+    document.querySelectorAll('#gradesWrap input[type="checkbox"]').forEach(cb=> cb.checked=false);
+
+    document.getElementById('submissionId').value = uuid();
+
+    // Clear school + enumerator (remove if you prefer keeping them)
+    document.getElementById('udiseInput').value = '';
+    document.getElementById('enumCodeInput').value = '';
+    document.getElementById('enumNameInput').value = '';
+
+    updateSubmitState();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   DATEPICKER = buildDatePicker();
   bindEvents();
 
-  // Load run + lock year when available
-  bootstrap().then(()=>{ /* DATEPICKER.setYear was called in bootstrap if RUN.year exists */ })
-             .catch(err=>{ console.error(err); document.getElementById('formStatus').textContent='Failed to initialize form. Check bootstrap data.'; });
+  bootstrap().catch(err=>{ console.error(err); document.getElementById('formStatus').textContent='Failed to initialize form. Check bootstrap data.'; });
 })();
 </script>
 </body>
 </html>
-
-
-
-
