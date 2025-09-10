@@ -164,7 +164,7 @@
     DATA_ENDPOINT: `${BASE}?action=bootstrap&runId=REPLACE_RUN_ID`,
     APPS_SCRIPT_URL: `${BASE}?action=submit`,
     // allow any date; year is locked to RUN.year
-    POLICY: { blockIfPresentExceedsRequired:true, blockIfPresentExceedsEnrolled:true, preventFutureDates:false, checkAgainstRegister:true }
+    POLICY: { blockIfPresentExceedsRequired:false, blockIfPresentExceedsEnrolled:false, preventFutureDates:false, checkAgainstRegister:true }
   }
 
   const $ = s => document.querySelector(s);
