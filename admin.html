@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Assessment Admin Console — Subjects & Grades (Per‑Grade in Schools CSV)</title>
+  <title>Assessment Admin Console — Subjects & Grades (Per-Grade in Schools CSV)</title>
   <style>
     :root{ --bg:#0b1020; --card:#121830; --card-2:#0f1530; --text:#e5e7eb; --muted:#9aa4b2; --primary:#4f46e5; --primary-2:#6366f1; --accent:#22c55e; --border:#26304d; --danger:#ef4444; }
     *{box-sizing:border-box}
@@ -43,7 +43,7 @@
 <body>
   <div class="container">
     <div class="header">
-      <div class="brand"><div class="dot"></div><h1>Assessment Admin Console — Subjects & Grades (Per‑Grade in Schools CSV)</h1></div>
+      <div class="brand"><div class="dot"></div><h1>Assessment Admin Console — Subjects & Grades (Per-Grade in Schools CSV)</h1></div>
       <span class="pill">Google Sheets Adapter</span>
     </div>
 
@@ -117,7 +117,7 @@
     </div>
 
     <div class="card">
-      <h3 style="margin:0 0 10px">Upload Schools CSV (with per‑grade totals)</h3>
+      <h3 style="margin:0 0 10px">Upload Schools CSV (with per-grade totals)</h3>
       <div class="grid grid-2">
         <div>
           <label>Run ID</label>
@@ -180,78 +180,118 @@
   const SUBJECTS = ['Maths','Language','English','Physics','Chemistry','Biology','Social Science','Science','History','Geography','EVS','Accountancy','Economics'];
   const GRADES = Array.from({length:12}, (_,i)=>`Grade ${i+1}`);
 
-  const cfg = { script: localStorage.getItem('cfg_script') || '', key: localStorage.getItem('cfg_key') || '', collector: localStorage.getItem('cfg_collector') || '' };
+  const cfg = {
+    script: localStorage.getItem('cfg_script') || '',
+    key: localStorage.getItem('cfg_key') || '',
+    collector: localStorage.getItem('cfg_collector') || ''
+  };
+
   const $ = s => document.querySelector(s);
   function toast(msg){ const t=$('#toast'); t.textContent=msg; t.style.display='inline-flex'; setTimeout(()=>t.style.display='none',1800); }
   function setStatus(el, msg, kind='info'){ el.innerHTML = msg ? (kind==='error'?`<span class="error">${msg}</span>`: msg) : ''; }
 
-  function renderChips(containerId, values){ const wrap = document.getElementById(containerId); wrap.innerHTML=''; values.forEach(val=>{ const id=`${containerId}_`+val.replace(/\W+/g,'_'); const lbl=document.createElement('label'); lbl.className='chip'; lbl.htmlFor=id; lbl.innerHTML=`<input type="checkbox" id="${id}" value="${val}" /> <span>${val}</span>`; wrap.appendChild(lbl); }); }
-  renderChips('subjectsWrap', SUBJECTS); renderChips('gradesWrap', GRADES);
-  function setAll(containerId, checked){ document.querySelectorAll(`#${containerId} input[type=checkbox]`).forEach(cb=>cb.checked=checked); }
+  // chips
+  function renderChips(containerId, values){
+    const wrap = document.getElementById(containerId); wrap.innerHTML='';
+    values.forEach(val=>{
+      const id=`${containerId}_`+val.replace(/\W+/g,'_');
+      const lbl=document.createElement('label');
+      lbl.className='chip';
+      lbl.htmlFor=id;
+      lbl.innerHTML=`<input type="checkbox" id="${id}" value="${val}" /> <span>${val}</span>`;
+      wrap.appendChild(lbl);
+    });
+  }
+  renderChips('subjectsWrap', SUBJECTS);
+  renderChips('gradesWrap', GRADES);
+
+  function setAll(containerId, checked){
+    document.querySelectorAll(`#${containerId} input[type=checkbox]`).forEach(cb=>cb.checked=checked);
+  }
   $('#grades_select_all').onclick = ()=> setAll('gradesWrap', true);
   $('#grades_clear').onclick = ()=> setAll('gradesWrap', false);
   $('#subjects_select_all').onclick = ()=> setAll('subjectsWrap', true);
   $('#subjects_clear').onclick = ()=> setAll('subjectsWrap', false);
 
-  $('#cfg_script').value = cfg.script; $('#cfg_key').value = cfg.key; $('#cfg_collector').value = cfg.collector;
-  $('#cfg_save').onclick = () => { cfg.script=$('#cfg_script').value.trim(); cfg.key=$('#cfg_key').value.trim(); cfg.collector=$('#cfg_collector').value.trim(); localStorage.setItem('cfg_script', cfg.script); localStorage.setItem('cfg_key', cfg.key); localStorage.setItem('cfg_collector', cfg.collector); setStatus($('#cfg_status'), '<span class="success">Saved ✓</span>'); toast('Saved'); };
-
-  $('#btn_create_run').onclick = async () => {
-    const project=$('#run_project').value.trim(); const year=Number($('#run_year').value.trim()); const round=$('#run_round').value.trim();
-    const grades=Array.from(document.querySelectorAll('#gradesWrap input:checked')).map(cb=>cb.value).join('|');
-    const subjects=Array.from(document.querySelectorAll('#subjectsWrap input:checked')).map(cb=>cb.value).join('|');
-    if (!cfg.script || !cfg.key) { setStatus($('#create_status'),'Set Script URL and Admin Key in Configuration','error'); return; }
-    if (!project || !year || !round || !grades || !subjects){ setStatus($('#create_status'),'Fill all fields and pick grades + at least one subject','error'); return; }
-    setStatus($('#create_status'),'Creating…');
-    try{
-      const res = await fetch(cfg.script+"?action=adminCreate",{ method:'POST', headers:{ 'Content-Type':'text/plain' }, body: JSON.stringify({ adminKey: cfg.key, project, year, round, grades, subjects }) });
-      const json = await res.json(); if (!json.ok) throw new Error(json.error||'Failed');
-      const runId=json.runId; setStatus($('#create_status'), `<span class="success">Run created</span> · Run ID: <span class="kbd">${runId}</span>`);
-      $('#schools_run').value=runId; $('#eval_run').value=runId; await refreshRuns();
-    } catch(err){ setStatus($('#create_status'), String(err),'error'); }
+  // config save/load
+  $('#cfg_script').value = cfg.script;
+  $('#cfg_key').value = cfg.key;
+  $('#cfg_collector').value = cfg.collector;
+  $('#cfg_save').onclick = () => {
+    cfg.script=$('#cfg_script').value.trim();
+    cfg.key=$('#cfg_key').value.trim();
+    cfg.collector=$('#cfg_collector').value.trim();
+    localStorage.setItem('cfg_script', cfg.script);
+    localStorage.setItem('cfg_key', cfg.key);
+    localStorage.setItem('cfg_collector', cfg.collector);
+    setStatus($('#cfg_status'), '<span class="success">Saved ✓</span>');
+    toast('Saved');
   };
 
-  function makeDownload(id, filename, headers){ const csv=headers.join(',')+"\n"; const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.getElementById(id); a.href=url; a.download=filename; }
+  // create run
+  $('#btn_create_run').onclick = async () => {
+    const project=$('#run_project').value.trim();
+    const year=Number($('#run_year').value.trim());
+    const round=$('#run_round').value.trim();
+    const grades=Array.from(document.querySelectorAll('#gradesWrap input:checked')).map(cb=>cb.value).join('|');
+    const subjects=Array.from(document.querySelectorAll('#subjectsWrap input:checked')).map(cb=>cb.value).join('|');
+
+    if (!cfg.script || !cfg.key) { setStatus($('#create_status'),'Set Script URL and Admin Key in Configuration','error'); return; }
+    if (!project || !year || !round || !grades || !subjects){
+      setStatus($('#create_status'),'Fill all fields and pick grades + at least one subject','error'); return;
+    }
+    setStatus($('#create_status'),'Creating…');
+    try{
+      const res = await fetch(cfg.script+"?action=adminCreate",{
+        method:'POST',
+        headers:{ 'Content-Type':'text/plain' },
+        body: JSON.stringify({ adminKey: cfg.key, project, year, round, grades, subjects })
+      });
+      const json = await res.json(); if (!json.ok) throw new Error(json.error||'Failed');
+      const runId=json.runId;
+      setStatus($('#create_status'), `<span class="success">Run created</span> · Run ID: <span class="kbd">${runId}</span>`);
+      $('#schools_run').value=runId; $('#eval_run').value=runId;
+      await refreshRuns();
+    } catch(err){
+      setStatus($('#create_status'), String(err),'error');
+    }
+  };
+
+  // CSV downloads
+  function makeDownload(id, filename, headers){
+    const csv=headers.join(',')+"\n";
+    const blob=new Blob([csv],{type:'text/csv'});
+    const url=URL.createObjectURL(blob);
+    const a=document.getElementById(id);
+    a.href=url; a.download=filename;
+  }
   makeDownload('dl_sch_template','schools_template.csv',[
     'UDISE','School name','State','District','Block','Number of students enrolled','Number of students required',
     ...Array.from({length:12},(_,i)=>[`Enrolled Grade ${i+1}`,`Required Grade ${i+1}`]).flat()
   ]);
   makeDownload('dl_eval_template','evaluators_template.csv',['Evaluator code','Evaluator name']);
 
-  function wireDrop(areaId, inputId, onFile){ const area=document.getElementById(areaId); const file=document.getElementById(inputId); area.addEventListener('click',()=> file.click()); area.addEventListener('dragover', e=>{e.preventDefault(); area.style.background='#101a3d';}); area.addEventListener('dragleave', ()=>{area.style.background='#0e1532';}); area.addEventListener('drop', e=>{e.preventDefault(); area.style.background='#0e1532'; if (e.dataTransfer.files[0]) onFile(e.dataTransfer.files[0]);}); file.addEventListener('change', ()=>{ if (file.files[0]) onFile(file.files[0]); }); }
+  // drag/drop
+  function wireDrop(areaId, inputId, onFile){
+    const area=document.getElementById(areaId);
+    const file=document.getElementById(inputId);
+    area.addEventListener('click',()=> file.click());
+    area.addEventListener('dragover', e=>{e.preventDefault(); area.style.background='#101a3d';});
+    area.addEventListener('dragleave', ()=>{area.style.background='#0e1532';});
+    area.addEventListener('drop', e=>{
+      e.preventDefault(); area.style.background='#0e1532';
+      if (e.dataTransfer.files[0]) onFile(e.dataTransfer.files[0]);
+    });
+    file.addEventListener('change', ()=>{ if (file.files[0]) onFile(file.files[0]); });
+  }
 
-  const SCHOOL_REQUIRED = ['UDISE','School name','State','District','Block','Number of students enrolled','Number of students required', ...Array.from({length:12},(_,i)=>[`Enrolled Grade ${i+1}`,`Required Grade ${i+1}`]).flat()];
+  const SCHOOL_REQUIRED = [
+    'UDISE','School name','State','District','Block','Number of students enrolled','Number of students required',
+    ...Array.from({length:12},(_,i)=>[`Enrolled Grade ${i+1}`,`Required Grade ${i+1}`]).flat()
+  ];
   const EVAL_REQUIRED = ['Evaluator code','Evaluator name'];
 
-  wireDrop('drop_sch','file_sch', async (f)=>{
-    const runId=$('#schools_run').value.trim(); if (!runId) { setStatus($('#sch_status'),'Enter Run ID','error'); return; }
-    if (!cfg.script || !cfg.key) { setStatus($('#sch_status'),'Set Script URL and Admin Key in Configuration','error'); return; }
-    setStatus($('#sch_status'),'Reading CSV…');
-    const text=await f.text(); const {headers, rows}=parseCSV(text);
-    const missing=SCHOOL_REQUIRED.filter(h=>!headers.includes(h)); if (missing.length){ setStatus($('#sch_status'),'Missing required columns: '+missing.join(', '),'error'); return; }
-    setStatus($('#sch_status'),'Uploading…');
-    try{
-      const res = await fetch(cfg.script+"?action=adminUpload",{ method:'POST', headers:{ 'Content-Type':'text/plain' }, body: JSON.stringify({ adminKey: cfg.key, runId, kind:'schools', rows }) });
-      const json=await res.json(); if (!json.ok) throw new Error(json.error||'Failed');
-      setStatus($('#sch_status'), `<span class="success">Uploaded</span> · ${json.inserted||json.upserted||0} rows`); await refreshRuns();
-    }catch(err){ setStatus($('#sch_status'), String(err),'error'); }
-  });
-
-  wireDrop('drop_eval','file_eval', async (f)=>{
-    const runId=$('#eval_run').value.trim(); if (!runId) { setStatus($('#eval_status'),'Enter Run ID','error'); return; }
-    if (!cfg.script || !cfg.key) { setStatus($('#eval_status'),'Set Script URL and Admin Key in Configuration','error'); return; }
-    setStatus($('#eval_status'),'Reading CSV…');
-    const text=await f.text(); const {headers, rows}=parseCSV(text);
-    const missing=EVAL_REQUIRED.filter(h=>!headers.includes(h));
-    if (missing.length){ setStatus($('#eval_status'),'Missing required columns: '+missing.join(', '),'error'); return; }
-    setStatus($('#eval_status'),'Uploading…');
-    try{
-      const res = await fetch(cfg.script+"?action=adminUpload",{ method:'POST', headers:{ 'Content-Type':'text/plain' }, body: JSON.stringify({ adminKey: cfg.key, runId, kind:'evaluators', rows }) });
-      const json=await res.json(); if (!json.ok) throw new Error(json.error||'Failed');
-      setStatus($('#eval_status'), `<span class="success">Uploaded</span> · ${json.inserted||json.upserted||0} rows`);
-    }catch(err){ setStatus($('#eval_status'), String(err),'error'); }
-  });
-
+  // CSV parse
   function parseCSV(text){
     const rows=[]; let cur=''; let row=[]; let inQuotes=false;
     for (let i=0;i<text.length;i++){
@@ -276,55 +316,94 @@
     return { headers, rows: out };
   }
 
-  async function refreshRuns(){
-  if (!cfg.script){ setStatus($('#runs_status'),'Set Script URL in Configuration','error'); return; }
-  setStatus($('#runs_status'),'Loading…');
-
-  try{
-    const res = await fetch(cfg.script+'?action=listruns');
-    const json = await res.json();
-    if (!json.ok || !Array.isArray(json.runs)) throw new Error(json.error || 'Failed');
-
-    // sort newest-first using any timestamp-ish field, then cap to 5
-    const ts = r => new Date(r.createdAt || r.created || r.timestamp || r.ts || r.updatedAt || 0).getTime();
-    const capped = json.runs.slice().sort((a,b)=> ts(b) - ts(a)).slice(0,5);
-
-    const tbody = $('#runs_table tbody');
-    tbody.innerHTML = '';
-    capped.forEach(r=>{
-      const runId = String(r.runId||'');
-      const grades = String(r.gradesConfigured||'');
-      const subjects = String(r.subjectsConfigured||'');
-      const link = cfg.collector ? `${cfg.collector}?runId=${encodeURIComponent(runId)}` : '(set Collector URL)';
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><span class="kbd">${runId}</span></td>
-        <td>${r.project||''}</td>
-        <td>${r.year||''}</td>
-        <td>${r.round||''}</td>
-        <td>${grades}</td>
-        <td>${subjects}</td>
-        <td>
-          <div class="row">
-            <button class="btn small secondary" data-link="${link}">Copy link</button>
-            <span class="muted">&nbsp;Add <span class="kbd">&ev=EV-0001</span> for evaluator-specific</span>
-          </div>
-        </td>`;
-      tbody.appendChild(tr);
-    });
-
-    tbody.querySelectorAll('button[data-link]').forEach(btn=>{
-      btn.addEventListener('click',()=>{
-        navigator.clipboard.writeText(btn.getAttribute('data-link'));
-        toast('Copied');
+  // uploads
+  wireDrop('drop_sch','file_sch', async (f)=>{
+    const runId=$('#schools_run').value.trim(); if (!runId) { setStatus($('#sch_status'),'Enter Run ID','error'); return; }
+    if (!cfg.script || !cfg.key) { setStatus($('#sch_status'),'Set Script URL and Admin Key in Configuration','error'); return; }
+    setStatus($('#sch_status'),'Reading CSV…');
+    const text=await f.text(); const {headers, rows}=parseCSV(text);
+    const missing=SCHOOL_REQUIRED.filter(h=>!headers.includes(h));
+    if (missing.length){ setStatus($('#sch_status'),'Missing required columns: '+missing.join(', '),'error'); return; }
+    setStatus($('#sch_status'),'Uploading…');
+    try{
+      const res = await fetch(cfg.script+"?action=adminUpload",{
+        method:'POST', headers:{ 'Content-Type':'text/plain' },
+        body: JSON.stringify({ adminKey: cfg.key, runId, kind:'schools', rows })
       });
-    });
+      const json=await res.json(); if (!json.ok) throw new Error(json.error||'Failed');
+      setStatus($('#sch_status'), `<span class="success">Uploaded</span> · ${json.inserted||json.upserted||0} rows`);
+      await refreshRuns();
+    }catch(err){ setStatus($('#sch_status'), String(err),'error'); }
+  });
 
-    setStatus($('#runs_status'), `Showing ${capped.length} of ${json.runs.length} run(s) — most recent first`);
-  } catch(err){
-    setStatus($('#runs_status'), String(err), 'error');
+  wireDrop('drop_eval','file_eval', async (f)=>{
+    const runId=$('#eval_run').value.trim(); if (!runId) { setStatus($('#eval_status'),'Enter Run ID','error'); return; }
+    if (!cfg.script || !cfg.key) { setStatus($('#eval_status'),'Set Script URL and Admin Key in Configuration','error'); return; }
+    setStatus($('#eval_status'),'Reading CSV…');
+    const text=await f.text(); const {headers, rows}=parseCSV(text);
+    const missing=EVAL_REQUIRED.filter(h=>!headers.includes(h));
+    if (missing.length){ setStatus($('#eval_status'),'Missing required columns: '+missing.join(', '),'error'); return; }
+    setStatus($('#eval_status'),'Uploading…');
+    try{
+      const res = await fetch(cfg.script+"?action=adminUpload",{
+        method:'POST', headers:{ 'Content-Type':'text/plain' },
+        body: JSON.stringify({ adminKey: cfg.key, runId, kind:'evaluators', rows })
+      });
+      const json=await res.json(); if (!json.ok) throw new Error(json.error||'Failed');
+      setStatus($('#eval_status'), `<span class="success">Uploaded</span> · ${json.inserted||json.upserted||0} rows`);
+    }catch(err){ setStatus($('#eval_status'), String(err),'error'); }
+  });
+
+  // runs list (show most-recent 5)
+  async function refreshRuns(){
+    if (!cfg.script){ setStatus($('#runs_status'),'Set Script URL in Configuration','error'); return; }
+    setStatus($('#runs_status'),'Loading…');
+    try{
+      const res=await fetch(cfg.script+'?action=listruns');
+      const json=await res.json();
+      if (!json.ok || !Array.isArray(json.runs)) throw new Error(json.error||'Failed');
+
+      // sort by createdAtISO if present; else reverse (assuming append order oldest->newest)
+      const runs = json.runs.slice();
+      const haveTs = runs.some(r=>r.createdAtISO);
+      const sorted = haveTs
+        ? runs.sort((a,b)=> new Date(b.createdAtISO||0) - new Date(a.createdAtISO||0))
+        : runs.reverse();
+      const capped = sorted.slice(0,5);
+
+      const tbody=$('#runs_table tbody'); tbody.innerHTML='';
+      capped.forEach(r=>{
+        const runId=String(r.runId||'');
+        const grades=String(r.gradesConfigured||'');
+        const subjects=String(r.subjectsConfigured||'');
+        const link = cfg.collector ? `${cfg.collector}?runId=${encodeURIComponent(runId)}` : '(set Collector URL)';
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td><span class="kbd">${runId}</span></td>
+                      <td>${r.project||''}</td>
+                      <td>${r.year||''}</td>
+                      <td>${r.round||''}</td>
+                      <td>${grades}</td>
+                      <td>${subjects}</td>
+                      <td><div class="row">
+                           <button class="btn small secondary" data-link="${link}">Copy link</button>
+                           <span class="muted">&nbsp;Add <span class="kbd">&ev=EV-0001</span> for evaluator-specific</span>
+                         </div></td>`;
+        tbody.appendChild(tr);
+      });
+      tbody.querySelectorAll('button[data-link]').forEach(btn=>{
+        btn.addEventListener('click',()=>{ navigator.clipboard.writeText(btn.getAttribute('data-link')); toast('Copied'); });
+      });
+      setStatus($('#runs_status'), `Showing ${capped.length} of ${json.runs.length} run(s) — most recent first`);
+    } catch(err){
+      setStatus($('#runs_status'), String(err),'error');
+    }
   }
-}
+
+  // wire and initial load
+  document.getElementById('btn_refresh_runs').onclick = refreshRuns;
+  if (cfg.script) refreshRuns();
+})();
 </script>
 </body>
 </html>
+
