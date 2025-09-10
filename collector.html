@@ -32,7 +32,7 @@
     .check { display:inline-flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--border); border-radius:10px; background:#0e1532; cursor:pointer; user-select:none; }
     .check input { width:16px; height:16px; }
     .grade-card { background:#0f1734; border:1px solid var(--border); padding:14px; border-radius:12px; }
-    .error { color:var(--danger); font-size:12.5px; margin-top:6px; }
+    .error { color:var(--danger); font-size:12.5px; }
     .success { color:var(--accent); font-weight:600; }
     .footer { margin-top: 16px; display:flex; justify-content:space-between; align-items:center; gap:8px; position:sticky; bottom:0; background: linear-gradient(180deg, rgba(17,23,45,.6), rgba(17,23,45,.95)); backdrop-filter: blur(6px); padding-top:10px; }
 
@@ -46,7 +46,7 @@
     .combo-item:hover, .combo-item.active { background: rgba(99,102,241,0.15); }
 
     .date-wrap { position: relative; }
-    .datepicker { position:absolute; left:0; right:0; top:calc(100% + 6px); width: auto; background: var(--card-2); border:1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.35); padding:12px; display:none; z-index:1000; }
+    .datepicker { position:absolute; left:0; right:0; top:calc(100% + 6px); width: 312px; background: var(--card-2); border:1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.35); padding:10px; display:none; z-index:1000; }
     .datepicker.open { display:block; }
     .dp-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; gap:8px; }
     .dp-header .left, .dp-header .right { display:flex; align-items:center; gap:6px; }
@@ -78,14 +78,16 @@
 
     <div class="card">
       <h2 style="margin:0 0 8px; font-size: 18px;">Visit details</h2>
-      <p class="mutetext" style="margin-top:0">Select school, enumerator, date, grades and enter counts for each subject. (Per-grade register enrollment can be entered inside each grade.)</p>
+      <p class="mutetext" style="margin-top:0">Select school, date, evaluator, grades and enter counts for each subject. Per‑grade register enrollment is inside each grade card.</p>
       <div class="divider"></div>
 
       <form id="collectorForm" novalidate>
         <input type="hidden" id="runId" />
         <input type="hidden" id="submissionId" />
 
+        <!-- *** New layout: UDISE + Date on the LEFT; Evaluator on the RIGHT *** -->
         <div class="grid grid-2">
+          <!-- LEFT COLUMN: UDISE + Date stacked -->
           <div>
             <label for="udiseInput">UDISE code <span aria-hidden="true" class="mutetext">(type to search, then pick)</span></label>
             <div class="combo" id="udiseCombo">
@@ -93,10 +95,23 @@
               <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
               <ul id="udiseList" class="combo-list" role="listbox"></ul>
             </div>
-            <div id="udiseError" class="error" style="display:none"></div>
+            <div id="udiseError" class="error" style="display:none; margin-top:4px"></div>
             <div id="schoolSummary" class="hint" style="display:none"></div>
+
+            <!-- Date of visit directly under UDISE -->
+            <div style="height:12px"></div>
+            <label for="visitDate">Date of visit</label>
+            <div class="date-wrap">
+              <input id="visitDate" type="text" inputmode="none" placeholder="dd/MM/yyyy" readonly />
+              <input id="visitDateISO" type="hidden" />
+              <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="right:10px;top:50%;position:absolute;transform:translateY(-50%);opacity:.7;pointer-events:none;"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <div id="datePicker" class="datepicker" aria-hidden="true"></div>
+            </div>
+            <div class="hint">Format: dd/MM/yyyy. Tap to pick from calendar.</div>
+            <div class="mutetext" id="visitDateDisplay" style="margin-top:6px;">&nbsp;</div>
           </div>
 
+          <!-- RIGHT COLUMN: Evaluator -->
           <div>
             <label for="enumCodeInput">Enumerator code</label>
             <div class="combo" id="enumCombo">
@@ -108,21 +123,6 @@
             <div style="height:10px"></div>
             <label for="enumNameInput">Enumerator name</label>
             <input id="enumNameInput" type="text" placeholder="Auto-fills when code is chosen from list" />
-          </div>
-        </div>
-
-        <!-- Only Date now (overall school enrollment has been removed) -->
-        <div class="grid" style="margin-top:6px;">
-          <div>
-            <label for="visitDate">Date of visit</label>
-            <div class="date-wrap">
-              <input id="visitDate" type="text" inputmode="none" placeholder="dd/MM/yyyy" readonly />
-              <input id="visitDateISO" type="hidden" />
-              <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="right:10px;top:50%;position:absolute;transform:translateY(-50%);opacity:.7;pointer-events:none;"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              <div id="datePicker" class="datepicker" aria-hidden="true"></div>
-            </div>
-            <div class="hint">Format: dd/MM/yyyy. Tap to pick from calendar.</div>
-            <div class="mutetext" id="visitDateDisplay" style="margin-top:6px;">&nbsp;</div>
           </div>
         </div>
 
@@ -157,7 +157,6 @@
     MODE: 'FETCH',
     DATA_ENDPOINT: `${BASE}?action=bootstrap&runId=REPLACE_RUN_ID`,
     APPS_SCRIPT_URL: `${BASE}?action=submit`,
-    // present can be <, =, or > enrolled/required; only check subjects <= present and (optional) per-grade register
     POLICY: { blockIfPresentExceedsRequired:false, blockIfPresentExceedsEnrolled:false, preventFutureDates:false, checkAgainstRegister:true }
   }
 
@@ -199,7 +198,6 @@
     return { setItems, getSelected, input };
   }
 
-  // --- Date Picker with Month Select, Year Locked, Done/Close controls ---
   function buildDatePicker(){
     const input = document.getElementById('visitDate');
     const hiddenISO = document.getElementById('visitDateISO');
@@ -353,7 +351,7 @@
       label:e=>`${e.code} — ${e.name}`,
       key:e=>e.code,
       searchFields:['code','name'],
-      render:e=>`<div><div style="font-weight:600;">${e.code}</div><small>${e.name}</small></div>`,
+      render:e=>`<div><div style=\"font-weight:600;\">${e.code}</div><small>${e.name}</small></div>`,
       onSelect:e=>{ document.getElementById('enumNameInput').value = e.name || ''; updateSubmitState(); }
     });
     if (!EVALUATORS.length){ document.getElementById('enumList').style.display='none'; }
@@ -426,7 +424,6 @@
       if(isNonNegInt(n) && isNonNegInt(present) && n>present) msgs.push(`${sub} cannot exceed Present.`);
     });
 
-    // Optional per-grade register cap (if provided)
     if (CONFIG.POLICY.checkAgainstRegister && isNonNegInt(present) && Number.isInteger(regGrade) && regGrade >= 0 && present > regGrade) {
       msgs.push(`Present (${present}) exceeds Register Enrollment for ${grade} (${regGrade}).`);
     }
@@ -536,7 +533,6 @@
 
     document.getElementById('submissionId').value = uuid();
 
-    // Clear school + enumerator (remove if you prefer keeping them)
     document.getElementById('udiseInput').value = '';
     document.getElementById('enumCodeInput').value = '';
     document.getElementById('enumNameInput').value = '';
